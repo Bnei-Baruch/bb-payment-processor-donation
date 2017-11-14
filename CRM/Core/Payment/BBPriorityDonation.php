@@ -175,10 +175,10 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         $error = array();
 
         if (empty($this->_paymentProcessor["user_name"])) {
-            $error[] = ts("Merchant Name is not set in the BBP Payment Processor settings.");
+            $error[] = ts("Merchant Name is not set in the BBPD Payment Processor settings.");
         }
         if (empty($this->_paymentProcessor["password"])) {
-            $error[] = ts("Merchant Password is not set in the BBP Payment Processor settings.");
+            $error[] = ts("Merchant Password is not set in the BBPD Payment Processor settings.");
         }
 
         if (!empty($error)) {
@@ -281,7 +281,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
             }
         }
 
-        $merchantUrl = $config->userFrameworkBaseURL . 'civicrm/payment/ipn?processor_name=BBP&mode=' . $this->_mode
+        $merchantUrl = $config->userFrameworkBaseURL . 'civicrm/payment/ipn?processor_name=BBPD&mode=' . $this->_mode
             . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
             . '&returnURL=' . base64_url_encode($returnURL);
 
@@ -313,12 +313,22 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         $pelecard->setParameter("Currency", $currency);
         $pelecard->setParameter("MinPayments", 1);
 
-        $pelecard->setParameter("MaxPayments", 1);
-        foreach ($params['eventCustomFields'][114]['fields'] as $key => $val) {
-            if ($val['label'] == 'Number of installments') {
-                $pelecard->setParameter("MaxPayments", $val['customValue'][1]['data']);
-            }
+        $financial_account_id = civicrm_api3('EntityFinancialAccount', 'getvalue', array(
+            'return' => "financial_account_id",
+            'entity_id' => $params["financialTypeID"],
+            'account_relationship' => 1,
+        ));
+
+        $installments = civicrm_api3('FinancialAccount', 'getvalue', array(
+            'return' => "account_type_code",
+            'id' => $financial_account_id,
+        ));
+        if (empty($installments)) {
+            $pelecard->setParameter("MaxPayments", 1);
+        } else {
+            $pelecard->setParameter("MaxPayments", $installments);
         }
+
         global $language;
         $lang = strtoupper($language->language);
         if ($lang == 'HE') {
