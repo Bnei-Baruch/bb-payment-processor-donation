@@ -126,7 +126,7 @@ class PelecardDonationAPI
     {
         $cid = $contribution->id;
         echo "<pre>";
-        var_dump($data);
+        var_dump($data['Token']);
         echo "</pre>";
         exit();
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
@@ -137,8 +137,8 @@ class PelecardDonationAPI
         }
 
         $token = $data['Token'] . '';
-        $amount = $data['amount'] . '';
-        $currency = $data['currency'] . ''; // Todo: ?????
+        $amount = $contribution['total_amount'];
+        $currency = $contribution['currency'];
 
         $this->vars_pay = [];
         $this->setParameter("terminalNumber", $processor["signature"]);
