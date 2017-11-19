@@ -233,8 +233,8 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             'onBehalfDupeAlert' => self::retrieve('onBehalfDupeAlert', 'String', 'GET', false),
             'returnURL' => self::retrieve('returnURL', 'String', 'GET', false),
             // POST Parameters
-            'PelecardTransactionId' => self::retrieve('PelecardTransactionId', 'String', 'POST', true),
             'PelecardStatusCode' => self::retrieve('PelecardStatusCode', 'String', 'POST', true),
+            'Token' => self::retrieve('PelecardTransactionId', 'String', 'POST', true),
             'ConfirmationKey' => self::retrieve('ConfirmationKey', 'String', 'POST', true),
             'UserKey' => self::retrieve('UserKey', 'String', 'POST', true),
         );
