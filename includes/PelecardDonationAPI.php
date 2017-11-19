@@ -124,7 +124,6 @@ class PelecardDonationAPI
     /****** Validate Response ******/
     function validateResponse($processor, $data, $contribution, $errors)
     {
-        $cid = $contribution->id;
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
         if ($PelecardStatusCode > 0) {
             CRM_Core_Error::debug_log_message("Error: " . $PelecardStatusCode);
@@ -132,42 +131,16 @@ class PelecardDonationAPI
             return false;
         }
 
+        $cid = $contribution->id;
+        $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $token = $data['Token'] . '';
         $amount = $contribution['total_amount'];
-        $currency = $contribution['currency'];
 
-        $this->vars_pay = [];
-        $this->setParameter("terminalNumber", $processor["signature"]);
-        $this->setParameter("user", $processor["user_name"]);
-        $this->setParameter("password", $processor["password"]);
-        $this->setParameter("shopNumber", 1000);
-        $this->setParameter("token", $token);
-        $this->setParameter("total", $amount);
-        $this->setParameter("currency", $currency);
-
-        $json = $this->arrayToJson();
-        $this->Services($json, '/DebitRegularType');
-        $error = $this->getParameter('Error');
-        if (is_array($error) && $error['ErrCode'] > 0) {
-            CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
-            return false;
-        }
-
-        $data = $this->getParameter('ResultData');
-        $this->stringToArray($data);
-
-        $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $cardtype = $data['CreditCardCompanyClearer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';
-        $installments = $data['TotalPayments'];
-        if ($installments == 1) {
-            $firstpay = $amount;
-        } else {
-            $firstpay = $data['FirstPaymentTotal'];
-        }
-
-        $amount = $data['amount'] . '';
+        $installments = $contribution->TotalPayments;
+        $firstpay = $amount;
 
         // Store all parameters in DB
         $query_params = array(
