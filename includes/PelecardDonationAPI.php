@@ -124,24 +124,62 @@ class PelecardDonationAPI
     /****** Validate Response ******/
     function validateResponse($processor, $data, $contribution, $errors)
     {
+        $cid = $contribution->id;
+
+        $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
         if ($PelecardStatusCode > 0) {
             CRM_Core_Error::debug_log_message("Error: " . $PelecardStatusCode);
-            echo "<h1>Error: ". $PelecardStatusCode . "</h1>";
-            echo "<h2>" . $errors[$PelecardStatusCode] . "</h2>";
+            echo "<h1>Error: " . $PelecardStatusCode . ': ' . $errors[$PelecardStatusCode] . "</h1>";
             return false;
         }
 
-        $cid = $contribution->id;
-        $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $token = $data['Token'] . '';
-        $amount = $contribution->total_amount;
+        $ConfirmationKey = $data['ConfirmationKey'] . '';
+        $UserKey = $data['UserKey'] . '';
+        $amount = $data['amount'] . '';
+
+        $this->vars_pay = [];
+        $this->setParameter("user", $processor["user_name"]);
+        $this->setParameter("password", $processor["password"]);
+        $this->setParameter("terminal", $processor["signature"]);
+        $this->setParameter("TransactionId", $PelecardTransactionId);
+
+        $json = $this->arrayToJson();
+        $this->connect($json, '/GetTransaction');
+
+        $error = $this->getParameter('Error');
+        if (is_array($error) && $error['ErrCode'] > 0) {
+            CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
+            return false;
+        }
+
+        $data = $this->getParameter('ResultData');
+        $this->stringToArray($data);
 
         $cardtype = $data['CreditCardCompanyClearer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';
-        $installments = $contribution->TotalPayments;
-        $firstpay = $amount;
+        $installments = $data['TotalPayments'];
+        if ($installments == 1) {
+            $firstpay = $amount;
+        } else {
+            $firstpay = $data['FirstPaymentTotal'];
+        }
+
+        $this->vars_pay = [];
+        $this->setParameter("ConfirmationKey", $ConfirmationKey);
+        $this->setParameter("UniqueKey", $UserKey);
+        $this->setParameter("TotalX100", $amount * 100);
+
+        $json = $this->arrayToJson();
+        $this->connect($json, '/ValidateByUniqueKey');
+
+        $error = $this->getParameter('Error');
+        if (is_array($error) && $error['ErrCode'] > 0) {
+            CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
+            return false;
+        }
 
         // Store all parameters in DB
         $query_params = array(
@@ -152,14 +190,13 @@ class PelecardDonationAPI
             5 => array($cardexp, 'String'),
             6 => array($firstpay, 'String'),
             7 => array($installments, 'String'),
-            8 => array(http_build_query($data), 'String'),
+            8 => array(implode(",", $data), 'String'),
             9 => array($amount, 'String'),
-            10 => array($token, 'String'),
+            10 => array(http_build_query($data), 'String'),
         );
         CRM_Core_DAO::executeQuery(
             'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
                    VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, NOW())', $query_params);
-        return $PelecardTransactionId;
     }
 
     /******  Base64 Functions  ******/
