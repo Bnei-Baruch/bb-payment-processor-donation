@@ -190,9 +190,9 @@ class PelecardDonationAPI
             5 => array($cardexp, 'String'),
             6 => array($firstpay, 'String'),
             7 => array($installments, 'String'),
-            8 => array(implode(",", $data), 'String'),
+            8 => array(http_build_query($data), 'String'),
             9 => array($amount, 'String'),
-            10 => array(http_build_query($data), 'String'),
+            10 => array($token, 'String'),
         );
         CRM_Core_DAO::executeQuery(
             'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
