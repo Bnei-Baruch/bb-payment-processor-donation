@@ -135,7 +135,7 @@ class PelecardDonationAPI
         $cid = $contribution->id;
         $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $token = $data['Token'] . '';
-        $amount = $contribution['total_amount'];
+        $amount = $contribution->total_amount;
 
         $cardtype = $data['CreditCardCompanyClearer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
