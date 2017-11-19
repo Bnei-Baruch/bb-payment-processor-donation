@@ -137,7 +137,7 @@ class PelecardDonationAPI
         }
 
         $token = $data['Token'] . '';
-        $amount = $data['amount'] . ''; // Todo: ?????
+        $amount = $data['amount'] . '';
         $currency = $data['currency'] . ''; // Todo: ?????
 
         $this->vars_pay = [];
