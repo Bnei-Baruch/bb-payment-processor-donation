@@ -125,10 +125,6 @@ class PelecardDonationAPI
     function validateResponse($processor, $data, $contribution, $errors)
     {
         $cid = $contribution->id;
-        echo "<pre>";
-        var_dump($data['Token']);
-        echo "</pre>";
-        exit();
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
         if ($PelecardStatusCode > 0) {
             CRM_Core_Error::debug_log_message("Error: " . $PelecardStatusCode);
