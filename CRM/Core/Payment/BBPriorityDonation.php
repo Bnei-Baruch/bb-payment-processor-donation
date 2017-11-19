@@ -7,7 +7,7 @@
  */
 
 require_once 'CRM/Core/Payment.php';
-require_once 'includes/PelecardAPI.php';
+require_once 'includes/PelecardDonationAPI.php';
 require_once 'BBPriorityDonationIPN.php';
 
 /**
@@ -285,7 +285,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
             . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
             . '&returnURL=' . base64_url_encode($returnURL);
 
-        $pelecard = new PelecardAPI;
+        $pelecard = new PelecardDonationAPI;
         $pelecard->setParameter("user", $this->_paymentProcessor["user_name"]);
         $pelecard->setParameter("password", $this->_paymentProcessor["password"]);
         $pelecard->setParameter("terminal", $this->_paymentProcessor["signature"]);
