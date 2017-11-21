@@ -137,7 +137,6 @@ class PelecardDonationAPI
         $token = $data['Token'] . '';
         $ConfirmationKey = $data['ConfirmationKey'] . '';
         $UserKey = $data['UserKey'] . '';
-        $amount = $data['amount'] . '';
 
         $this->vars_pay = [];
         $this->setParameter("user", $processor["user_name"]);
@@ -160,6 +159,7 @@ class PelecardDonationAPI
         $cardtype = $data['CreditCardCompanyClearer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';
+        $amount = $data['DebitTotal'] / 100.00;
         $installments = $data['TotalPayments'];
         if ($installments == 1) {
             $firstpay = $amount;
