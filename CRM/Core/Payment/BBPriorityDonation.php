@@ -338,20 +338,49 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
             $pelecard->setParameter("MaxPayments", $installments);
         }
 
+        $contact_id = civicrm_api3('FinancialAccount', 'getvalue', array(
+            'return' => "contact_id",
+            'id' => $financial_account_id,
+            'account_relationship' => 1,
+        ));
+        $nick_name = civicrm_api3('Contact', 'getvalue', array(
+            'return' => "nick_name",
+            'id' => $contact_id,
+            'account_relationship' => 1,
+        ));
+
         global $language;
         $lang = strtoupper($language->language);
-        if ($lang == 'HE') {
-            $pelecard->setParameter("TopText", 'BB כרטיסי אשראי');
-            $pelecard->setParameter("BottomText", '© בני ברוך קבלה לעם');
-            $pelecard->setParameter("Language", 'HE');
-        } elseif ($lang == 'RU') {
-            $pelecard->setParameter("TopText", 'BB Кредитные Карты');
-            $pelecard->setParameter("BottomText", '© Бней Барух Каббала лаАм');
-            $pelecard->setParameter("Language", 'RU');
-        } else {
-            $pelecard->setParameter("TopText", 'BB Credit Cards');
-            $pelecard->setParameter("BottomText", '© Bnei Baruch Kabbalah laAm');
-            $pelecard->setParameter("Language", 'EN');
+        if ($nick_name == 'bnei') {
+            if ($lang == 'HE') {
+                $pelecard->setParameter("TopText", 'בני ברוך קבלה לעם');
+                $pelecard->setParameter("BottomText", '© בני ברוך קבלה לעם');
+                $pelecard->setParameter("Language", 'HE');
+            } elseif ($lang == 'RU') {
+                $pelecard->setParameter("TopText", 'Бней Барух Каббала лаАм');
+                $pelecard->setParameter("BottomText", '© Бней Барух Каббала лаАм');
+                $pelecard->setParameter("Language", 'RU');
+            } else {
+                $pelecard->setParameter("TopText", 'Bnei Baruch Kabbalah laAm');
+                $pelecard->setParameter("BottomText", '© Bnei Baruch Kabbalah laAm');
+                $pelecard->setParameter("Language", 'EN');
+            }
+            $pelecard->setParameter("LogoUrl", "http://www.kab.co.il/images/hebmain/logo1.png");
+        } elseif ($nick_name == 'arvu') {
+            if ($lang == 'HE') {
+                $pelecard->setParameter("TopText", 'תנועת הערבות לאיחוד העם');
+                $pelecard->setParameter("BottomText", '© תנועת הערבות לאיחוד העם');
+                $pelecard->setParameter("Language", 'HE');
+            } elseif ($lang == 'RU') {
+                $pelecard->setParameter("TopText", 'Общественное движение «Арвут»');
+                $pelecard->setParameter("BottomText", '© Общественное движение «Арвут»');
+                $pelecard->setParameter("Language", 'RU');
+            } else {
+                $pelecard->setParameter("TopText", 'The Arvut Social Movement');
+                $pelecard->setParameter("BottomText", '© The Arvut Social Movement');
+                $pelecard->setParameter("Language", 'EN');
+            }
+            $pelecard->setParameter("LogoUrl", "http://www.arvut.org/templates/ja_purity_ii/images/arvut_logo.png");
         }
 
         $result = $pelecard->getRedirectUrl();
