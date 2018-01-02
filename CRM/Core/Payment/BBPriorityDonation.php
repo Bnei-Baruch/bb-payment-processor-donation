@@ -297,11 +297,8 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         $pelecard->setParameter("GoodUrl", $merchantUrl); // ReturnUrl should be used _AFTER_ payment confirmation
         $pelecard->setParameter("ErrorUrl", $merchantUrl);
         $pelecard->setParameter("CancelUrl", $cancelURL);
-        $pelecard->setParameter("Total", $params["amount"] * 100);
-        if ($params["amount"] == 1) {
-            // Maaser
-            $pelecard->setParameter("FreeTotal", true);
-        }
+        $amount = $params["amount"];
+        $pelecard->setParameter("Total", $amount * 100);
 
         if ($params["currencyID"] == "EUR") {
             $currency = 978;
@@ -311,7 +308,6 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
             $currency = 1;
         }
         $pelecard->setParameter("Currency", $currency);
-        $pelecard->setParameter("MinPayments", 1);
 
         $entityId = $params["financialTypeID"];
         if (empty($entityId)) {
@@ -328,16 +324,6 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
             'account_relationship' => 1,
         ));
 
-        $installments = civicrm_api3('FinancialAccount', 'getvalue', array(
-            'return' => "account_type_code",
-            'id' => $financial_account_id,
-        ));
-        if (empty($installments)) {
-            $pelecard->setParameter("MaxPayments", 1);
-        } else {
-            $pelecard->setParameter("MaxPayments", $installments);
-        }
-
         $contact_id = civicrm_api3('FinancialAccount', 'getvalue', array(
             'return' => "contact_id",
             'id' => $financial_account_id,
@@ -353,30 +339,30 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         $lang = strtoupper($language->language);
         if ($nick_name == 'ben2') {
             if ($lang == 'HE') {
-                $pelecard->setParameter("TopText", 'בני ברוך קבלה לעם');
+                $pelecard->setParameter("TopText", 'סכום התרומה: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© בני ברוך קבלה לעם');
                 $pelecard->setParameter("Language", 'HE');
             } elseif ($lang == 'RU') {
-                $pelecard->setParameter("TopText", 'Бней Барух Каббала лаАм');
+                $pelecard->setParameter("TopText", 'Сумма пожертвования: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© Бней Барух Каббала лаАм');
                 $pelecard->setParameter("Language", 'RU');
             } else {
-                $pelecard->setParameter("TopText", 'Bnei Baruch Kabbalah laAm');
+                $pelecard->setParameter("TopText", 'Donation Amount: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© Bnei Baruch Kabbalah laAm');
                 $pelecard->setParameter("Language", 'EN');
             }
             $pelecard->setParameter("LogoUrl", "http://www.kab.co.il/images/hebmain/logo1.png");
         } elseif ($nick_name == 'arvut2') {
             if ($lang == 'HE') {
-                $pelecard->setParameter("TopText", 'תנועת הערבות לאיחוד העם');
+                $pelecard->setParameter("TopText", 'סכום התרומה: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© תנועת הערבות לאיחוד העם');
                 $pelecard->setParameter("Language", 'HE');
             } elseif ($lang == 'RU') {
-                $pelecard->setParameter("TopText", 'Общественное движение «Арвут»');
+                $pelecard->setParameter("TopText", 'Сумма пожертвования: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© Общественное движение «Арвут»');
                 $pelecard->setParameter("Language", 'RU');
             } else {
-                $pelecard->setParameter("TopText", 'The Arvut Social Movement');
+                $pelecard->setParameter("TopText", 'Donation Amount: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© The Arvut Social Movement');
                 $pelecard->setParameter("Language", 'EN');
             }
