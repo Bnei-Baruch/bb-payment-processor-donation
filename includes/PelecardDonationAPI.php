@@ -122,20 +122,29 @@ class PelecardDonationAPI
     }
 
     /****** First Charge Donation Request ******/
-    function firstCharge($paymentProcessor, $input)
+    function firstCharge($paymentProcessor, $input, $contribution)
     {
         $this->vars_pay = [];
         $this->setParameter("terminalNumber", $paymentProcessor["signature"]);
         $this->setParameter("user", $paymentProcessor["user_name"]);
         $this->setParameter("password", $paymentProcessor["password"]);
         $this->setParameter("shopNumber", "1000");
-        $this->setParameter("token", $input['Currency']);
-        $this->setParameter("total", $input['DebitTotal']);
+        $this->setParameter("token", $input['Token']);
         $this->setParameter("paramX", 'First Charge');
-
+        $this->setParameter("total", $contribution->total_amount * 100);
+	if ($contribution->currency == "EUR") {
+            $currency = 978;
+        } elseif ($contribution->currency == "USD") {
+            $currency = 2;
+        } else { // ILS -- default
+            $currency = 1;
+        }
+        $this->setParameter("currency", $currency);
+ 
         $json = $this->arrayToJson();
         $this->Services($json, '/DebitRegularType');
         $error = $this->getParameter('Error');
+
         if (is_array($error) && $error['ErrCode'] > 0) {
             CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
             return false;

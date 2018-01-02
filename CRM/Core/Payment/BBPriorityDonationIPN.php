@@ -237,7 +237,6 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             'PelecardStatusCode' => self::retrieve('PelecardStatusCode', 'String', 'POST', true),
             'Token' => self::retrieve('Token', 'String', 'POST', true),
             'ConfirmationKey' => self::retrieve('ConfirmationKey', 'String', 'POST', true),
-            'Currency' => self::retrieve('Currency', 'String', 'POST', true),
             'UserKey' => self::retrieve('UserKey', 'String', 'POST', true),
         );
 
@@ -271,7 +270,6 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         $contribution = &$objects['contribution'];
-        $input['amount'] = $contribution->total_amount;
         $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors);
 
         if (!$valid) {
@@ -279,8 +277,8 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             return false;
         }
 
-        // Charge donator for the first time
-        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input)) {
+        // Charge donor for the first time
+        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution)) {
             CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
             return false;
         }
