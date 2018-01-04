@@ -260,19 +260,25 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         if (!parent::validateData($input, $ids, $objects, $required, $paymentProcessorID)) {
             CRM_Core_Error::debug_log_message("\n\nparent::validateResult: VALIDATION ERROR\n\n");
             echo "<h1>Error: \n\nvalidateResult: VALIDATION ERROR\n\n</h1>";
-            exit(1);
+            return false;
         }
 
         if ($input['UserKey'] != $input['qfKey']) {
             CRM_Core_Error::debug_log_message("Pelecard Response param UserKey is invalid");
             echo "<h1>Pelecard Response param UserKey is invalid</h1>";
-            exit(1);
+            return false;
         }
 
         $contribution = &$objects['contribution'];
         $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors);
 
         if (!$valid) {
+            $query_params = array(
+                1 => array($contribution->id, 'String')
+            );
+            CRM_Core_DAO::executeQuery(
+                'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
+
             CRM_Core_Error::debug_log_message("Pelecard Response is invalid");
             return false;
         }
