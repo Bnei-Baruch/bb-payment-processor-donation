@@ -130,9 +130,9 @@ class PelecardDonationAPI
         $this->setParameter("password", $paymentProcessor["password"]);
         $this->setParameter("shopNumber", "1000");
         $this->setParameter("token", $input['Token']);
-        $this->setParameter("paramX", 'First Charge');
+        $this->setParameter("ParamX", 'civicrm-' . $contribution->id);
         $this->setParameter("total", $contribution->total_amount * 100);
-	if ($contribution->currency == "EUR") {
+        if ($contribution->currency == "EUR") {
             $currency = 978;
         } elseif ($contribution->currency == "USD") {
             $currency = 2;
@@ -140,7 +140,7 @@ class PelecardDonationAPI
             $currency = 1;
         }
         $this->setParameter("currency", $currency);
- 
+
         $json = $this->arrayToJson();
         $this->Services($json, '/DebitRegularType');
         $error = $this->getParameter('Error');
