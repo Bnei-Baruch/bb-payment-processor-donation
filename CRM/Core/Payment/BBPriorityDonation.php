@@ -343,14 +343,23 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
                 $pelecard->setParameter("TopText", 'סכום התרומה: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© בני ברוך קבלה לעם');
                 $pelecard->setParameter("Language", 'HE');
+                $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
+                $pelecard->setParameter('TextOnConfirmationBox', 'אני מסכים עם תנאי השימוש');
+                $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-he.html');
             } elseif ($lang == 'RU') {
                 $pelecard->setParameter("TopText", 'Сумма пожертвования: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© Бней Барух Каббала лаАм');
                 $pelecard->setParameter("Language", 'RU');
+                $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
+                $pelecard->setParameter('TextOnConfirmationBox', 'Я согласен с условиями обслуживания');
+                $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-ru.html');
             } else {
                 $pelecard->setParameter("TopText", 'Donation Amount: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© Bnei Baruch Kabbalah laAm');
                 $pelecard->setParameter("Language", 'EN');
+                $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
+                $pelecard->setParameter('TextOnConfirmationBox', 'I agree with the terms of service');
+                $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-en.html');
             }
             $pelecard->setParameter("LogoUrl", "http://www.kab.co.il/images/hebmain/logo1.png");
         } elseif ($nick_name == 'arvut2') {
