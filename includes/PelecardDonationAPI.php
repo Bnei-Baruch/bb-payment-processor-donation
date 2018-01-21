@@ -50,7 +50,7 @@ class PelecardDonationAPI
         $this->setParameter("TelField", 'hide');
         $this->setParameter("FeedbackDataTransferMethod", 'POST');
         $this->setParameter("FirstPayment", 'auto');
-        $this->setParameter("ShopNo", 1000);
+        $this->setParameter("ShopNo", 100);
         $this->setParameter("SetFocus", 'CC');
         $this->setParameter("HiddenPelecardLogo", true);
         $cards = [
@@ -128,7 +128,7 @@ class PelecardDonationAPI
         $this->setParameter("terminalNumber", $paymentProcessor["signature"]);
         $this->setParameter("user", $paymentProcessor["user_name"]);
         $this->setParameter("password", $paymentProcessor["password"]);
-        $this->setParameter("shopNumber", "1000");
+        $this->setParameter("ShopNo", "100");
         $this->setParameter("token", $input['Token']);
         $this->setParameter("ParamX", 'civicrm-' . $contribution->id);
         $this->setParameter("total", $contribution->total_amount * 100);
