@@ -286,7 +286,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         }
 
         $pelecard = new PelecardDonationAPI;
-        $merchantUrl = $base_url . '/' . strtolower($lang) . 'civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
+        $merchantUrl = $base_url . '/' . strtolower($lang) . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
             . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
             . '&returnURL=' . $pelecard->base64_url_encode($returnURL);
 
