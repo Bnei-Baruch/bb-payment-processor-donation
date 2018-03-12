@@ -236,6 +236,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
 
         if ($component != 'contribute' && $component != 'event') {
             CRM_Core_Error::fatal(ts('Component is invalid'));
+            exit();
         }
 
         if (array_key_exists('webform_redirect_success', $params)) {
@@ -314,7 +315,15 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         }
         $pelecard->setParameter("Currency", $currency);
 
-        $entityId = $params["financialTypeID"];
+        if (array_key_exists("financialTypeID", $params)) {
+            $entityId = $params["financialTypeID"];
+        } elseif (array_key_exists("financial_type_id", $params)) {
+            $entityId = $params["financial_type_id"];
+        } else {
+            CRM_Core_Error::fatal("Expected param 'Financial Type Id' does not present");
+            exit();
+        }
+
         if (empty($entityId)) {
             $participants_info = $params['participants_info'];
             $key = array_keys($participants_info)[0];
