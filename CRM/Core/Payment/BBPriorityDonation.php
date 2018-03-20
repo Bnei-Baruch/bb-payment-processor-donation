@@ -315,26 +315,13 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         }
         $pelecard->setParameter("Currency", $currency);
 
-        if (array_key_exists("financialTypeID", $params)) {
-            $entityId = $params["financialTypeID"];
-        } elseif (array_key_exists("financial_type_id", $params)) {
-            $entityId = $params["financial_type_id"];
-        } else {
-            CRM_Core_Error::fatal("Expected param 'Financial Type Id' does not present");
-            exit();
-        }
-
-        if (empty($entityId)) {
-            $participants_info = $params['participants_info'];
-            $key = array_keys($participants_info)[0];
-            $line_item = $participants_info[$key]['lineItem'][0];
-            $key = array_keys($line_item)[0];
-            $xxx = $line_item[$key];
-            $entityId = $xxx["financial_type_id"];
+        $financialTypeID = self::array_column_recursive_first($params, "financialTypeID");
+        if (empty($financialTypeID)) {
+            $financialTypeID = self::array_column_recursive_first($params, "financial_type_id");
         }
         $financial_account_id = civicrm_api3('EntityFinancialAccount', 'getvalue', array(
             'return' => "financial_account_id",
-            'entity_id' => $entityId,
+            'entity_id' => $financialTypeID,
             'account_relationship' => 1,
         ));
 
@@ -476,4 +463,14 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         }
     }
 
+    /* Find first occurrence of needle somewhere in haystack (on all levels) */
+    static function array_column_recursive_first(array $haystack, $needle)
+    {
+        $found = [];
+        array_walk_recursive($haystack, function ($value, $key) use (&$found, $needle) {
+            if ($key == $needle)
+                $found[] = $value;
+        });
+        return $found[0];
+    }
 }
