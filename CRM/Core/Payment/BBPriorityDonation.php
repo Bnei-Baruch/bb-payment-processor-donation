@@ -468,8 +468,9 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
     {
         $found = [];
         array_walk_recursive($haystack, function ($value, $key) use (&$found, $needle) {
-            if ($key == $needle)
+            if (gettype($key) == 'string' && $key == $needle) {
                 $found[] = $value;
+            }
         });
         return $found[0];
     }
