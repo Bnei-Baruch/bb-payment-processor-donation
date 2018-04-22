@@ -122,7 +122,7 @@ class PelecardDonationAPI
     }
 
     /****** First Charge Donation Request ******/
-    function firstCharge($paymentProcessor, $data, $contribution)
+    function firstCharge($paymentProcessor, $input, $contribution, $errors)
     {
         $cid = $contribution->id;
         $token = $data['Token'] . '';
@@ -159,29 +159,11 @@ class PelecardDonationAPI
             CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
             return false;
         }
-
-        // Store all parameters in DB
-        $query_params = array(
-            1 => array($PelecardTransactionId, 'String'),
-            2 => array($cid, 'String'),
-            3 => array($cardtype, 'String'),
-            4 => array($cardnum, 'String'),
-            5 => array($cardexp, 'String'),
-            6 => array($firstpay, 'String'),
-            7 => array($installments, 'String'),
-            8 => array(http_build_query($this->arrayToJson()), 'String'),
-            9 => array($amount, 'String'),
-            10 => array($token, 'String'),
-        );
-        CRM_Core_DAO::executeQuery(
-            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
-                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, NOW())', $query_params);
-
-        return true;
+        return $this->validateResponse($paymentProcessor, $this->vars_pay['ResultData'], $contribution, $errors, true);
     }
 
     /****** Validate Response ******/
-    function validateResponse($processor, $data, $contribution, $errors)
+    function validateResponse($processor, $data, $contribution, $errors, $store_results)
     {
         $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
@@ -249,7 +231,24 @@ class PelecardDonationAPI
             return false;
         }
 
-        // First request was J2 (verify CC), hence DO NOT store parameters in DB
+        // Store all parameters in DB
+        if ($store_results) {
+            $query_params = array(
+                1 => array($PelecardTransactionId, 'String'),
+                2 => array($cid, 'String'),
+                3 => array($cardtype, 'String'),
+                4 => array($cardnum, 'String'),
+                5 => array($cardexp, 'String'),
+                6 => array($firstpay, 'String'),
+                7 => array($installments, 'String'),
+                8 => array(http_build_query($data), 'String'),
+                9 => array($amount, 'String'),
+                10 => array($token, 'String'),
+            );
+            CRM_Core_DAO::executeQuery(
+                'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
+                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, NOW())', $query_params);
+        }
 
         return true;
     }
