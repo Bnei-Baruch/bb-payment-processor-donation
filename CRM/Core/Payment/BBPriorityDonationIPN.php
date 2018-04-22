@@ -270,7 +270,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         $contribution = &$objects['contribution'];
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false);
+        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors);
 
         if (!$valid) {
             $query_params = array(
