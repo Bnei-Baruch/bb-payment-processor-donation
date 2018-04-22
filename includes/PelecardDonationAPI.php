@@ -122,16 +122,26 @@ class PelecardDonationAPI
     }
 
     /****** First Charge Donation Request ******/
-    function firstCharge($paymentProcessor, $input, $contribution)
+    function firstCharge($paymentProcessor, $data, $contribution)
     {
+        $cid = $contribution->id;
+        $token = $data['Token'] . '';
+        $PelecardTransactionId = $data['PelecardTransactionId'] . '';
+        $cardtype = $data['CreditCardCompanyIssuer'] . '';
+        $cardnum = $data['CreditCardNumber'] . '';
+        $cardexp = $data['CreditCardExpDate'] . '';
+        $amount = $contribution->total_amount;
+        $installments = $data['TotalPayments'];
+        $firstpay = $amount;
+
         $this->vars_pay = [];
         $this->setParameter("terminalNumber", $paymentProcessor["signature"]);
         $this->setParameter("user", $paymentProcessor["user_name"]);
         $this->setParameter("password", $paymentProcessor["password"]);
         $this->setParameter("ShopNo", "100");
-        $this->setParameter("token", $input['Token']);
-        $this->setParameter("ParamX", 'civicrm-' . $contribution->id);
-        $this->setParameter("total", $contribution->total_amount * 100);
+        $this->setParameter("token", $token);
+        $this->setParameter("ParamX", 'civicrm-' . $cid);
+        $this->setParameter("total", $amount * 100);
         if ($contribution->currency == "EUR") {
             $currency = 978;
         } elseif ($contribution->currency == "USD") {
@@ -149,14 +159,30 @@ class PelecardDonationAPI
             CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
             return false;
         }
+
+        // Store all parameters in DB
+        $query_params = array(
+            1 => array($PelecardTransactionId, 'String'),
+            2 => array($cid, 'String'),
+            3 => array($cardtype, 'String'),
+            4 => array($cardnum, 'String'),
+            5 => array($cardexp, 'String'),
+            6 => array($firstpay, 'String'),
+            7 => array($installments, 'String'),
+            8 => array(http_build_query($this->arrayToJson()), 'String'),
+            9 => array($amount, 'String'),
+            10 => array($token, 'String'),
+        );
+        CRM_Core_DAO::executeQuery(
+            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
+                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, NOW())', $query_params);
+
         return true;
     }
 
     /****** Validate Response ******/
     function validateResponse($processor, $data, $contribution, $errors)
     {
-        $cid = $contribution->id;
-
         $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
         if ($PelecardStatusCode > 0) {
@@ -172,7 +198,6 @@ class PelecardDonationAPI
             return false;
         }
 
-        $token = $data['Token'] . '';
         $ConfirmationKey = $data['ConfirmationKey'] . '';
         $UserKey = $data['UserKey'] . '';
 
@@ -201,12 +226,7 @@ class PelecardDonationAPI
         $data = $this->getParameter('ResultData');
         $this->stringToArray($data);
 
-        $cardtype = $data['CreditCardCompanyIssuer'] . '';
-        $cardnum = $data['CreditCardNumber'] . '';
-        $cardexp = $data['CreditCardExpDate'] . '';
         $amount = $contribution->total_amount;
-        $installments = $data['TotalPayments'];
-        $firstpay = $amount;
 
         $this->vars_pay = [];
         $this->setParameter("ConfirmationKey", $ConfirmationKey);
@@ -229,22 +249,7 @@ class PelecardDonationAPI
             return false;
         }
 
-        // Store all parameters in DB
-        $query_params = array(
-            1 => array($PelecardTransactionId, 'String'),
-            2 => array($cid, 'String'),
-            3 => array($cardtype, 'String'),
-            4 => array($cardnum, 'String'),
-            5 => array($cardexp, 'String'),
-            6 => array($firstpay, 'String'),
-            7 => array($installments, 'String'),
-            8 => array(http_build_query($data), 'String'),
-            9 => array($amount, 'String'),
-            10 => array($token, 'String'),
-        );
-        CRM_Core_DAO::executeQuery(
-            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
-                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, NOW())', $query_params);
+        // First request was J2 (verify CC), hence DO NOT store parameters in DB
 
         return true;
     }
