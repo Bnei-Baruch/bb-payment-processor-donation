@@ -270,7 +270,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         $contribution = &$objects['contribution'];
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors);
+        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false);
 
         if (!$valid) {
             $query_params = array(
@@ -284,7 +284,12 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         // Charge donor for the first time
-        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution)) {
+        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $this->errors)) {
+            $query_params = array(
+                1 => array($contribution->id, 'String')
+            );
+            CRM_Core_DAO::executeQuery(
+                'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
             CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
             return false;
         }
