@@ -122,19 +122,20 @@ class PelecardDonationAPI
     }
 
     /****** First Charge Donation Request ******/
-    function firstCharge($paymentProcessor, $input, $contribution, $errors)
+    function firstCharge($paymentProcessor, $input, $contribution)
     {
-        echo "<pre>";
-        var_dump($this->vars_pay['ResultData']);
-        echo "</pre>";
+        $token = $input['Token'] . '';
+        $cid = $contribution->id;
+        $amount = $contribution->total_amount;
+
         $this->vars_pay = [];
         $this->setParameter("terminalNumber", $paymentProcessor["signature"]);
         $this->setParameter("user", $paymentProcessor["user_name"]);
         $this->setParameter("password", $paymentProcessor["password"]);
         $this->setParameter("ShopNo", "100");
-        $this->setParameter("token", $input['Token']);
-        $this->setParameter("ParamX", 'civicrm-' . $contribution->id);
-        $this->setParameter("total", $contribution->total_amount * 100);
+        $this->setParameter("token", $token);
+        $this->setParameter("ParamX", 'civicrm-' . $cid);
+        $this->setParameter("total", $amount * 100);
         if ($contribution->currency == "EUR") {
             $currency = 978;
         } elseif ($contribution->currency == "USD") {
@@ -153,14 +154,11 @@ class PelecardDonationAPI
             return false;
         }
         // Store all parameters in DB
-        $cid = $contribution->id;
         $data = $this->vars_pay['ResultData'];
         $PelecardTransactionId = $data['PelecardTransactionId'] . '';
-        $token = $data['Token'] . '';
         $cardtype = $data['CreditCardCompanyIssuer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';
-        $amount = $contribution->total_amount;
         $installments = $data['TotalPayments'];
         $firstpay = $amount;
 
