@@ -412,31 +412,15 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
             'payment_processor_type_id' => $paymentProcessorTypeID,
             'return' => 'id',
         ));
-        echo "<pre>";
-        echo "<p>1</p>";
-        var_dump($input['returnURL']);
-        echo "</pre>";
         if (!$ipn->validateResult($this->_paymentProcessor, $input, $ids, $objects, TRUE, $paymentProcessorID)) {
             // CRM_Core_Error::debug_log_message("bbpriorityDonation Validation failed");
             echo("bbpriorityDonation Validation failed");
             exit();
         }
 
-        echo "<pre>";
-        echo "<p>2</p>";
-        var_dump($input['returnURL']);
-        echo "</pre>";
         if ($ipn->single($input, $ids, $objects, FALSE, FALSE)) {
-            echo "<pre>";
-            echo "<p>3</p>";
-            var_dump($input['returnURL']);
-            echo "</pre>";
             $returnURL = (new PelecardDonationAPI)->base64_url_decode($input['returnURL']);
-            echo "<pre>";
-            echo "<p>4</p>";
-            var_dump($returnURL);
-            echo "</pre>";
-            exit();
+
             // Print the tpl to redirect to success
             $template = CRM_Core_Smarty::singleton();
             $template->assign('url', $returnURL);
