@@ -124,24 +124,14 @@ class PelecardDonationAPI
     /****** First Charge Donation Request ******/
     function firstCharge($paymentProcessor, $input, $contribution, $errors)
     {
-        $cid = $contribution->id;
-        $token = $data['Token'] . '';
-        $PelecardTransactionId = $data['PelecardTransactionId'] . '';
-        $cardtype = $data['CreditCardCompanyIssuer'] . '';
-        $cardnum = $data['CreditCardNumber'] . '';
-        $cardexp = $data['CreditCardExpDate'] . '';
-        $amount = $contribution->total_amount;
-        $installments = $data['TotalPayments'];
-        $firstpay = $amount;
-
         $this->vars_pay = [];
         $this->setParameter("terminalNumber", $paymentProcessor["signature"]);
         $this->setParameter("user", $paymentProcessor["user_name"]);
         $this->setParameter("password", $paymentProcessor["password"]);
         $this->setParameter("ShopNo", "100");
-        $this->setParameter("token", $token);
-        $this->setParameter("ParamX", 'civicrm-' . $cid);
-        $this->setParameter("total", $amount * 100);
+        $this->setParameter("token", $input['Token']);
+        $this->setParameter("ParamX", 'civicrm-' . $contribution->id);
+        $this->setParameter("total", $contribution->total_amount * 100);
         if ($contribution->currency == "EUR") {
             $currency = 978;
         } elseif ($contribution->currency == "USD") {
@@ -165,6 +155,7 @@ class PelecardDonationAPI
     /****** Validate Response ******/
     function validateResponse($processor, $data, $contribution, $errors, $store_results)
     {
+        $cid = $contribution->id;
         $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
         if ($PelecardStatusCode > 0) {
@@ -180,6 +171,7 @@ class PelecardDonationAPI
             return false;
         }
 
+        $token = $data['Token'] . '';
         $ConfirmationKey = $data['ConfirmationKey'] . '';
         $UserKey = $data['UserKey'] . '';
 
@@ -208,7 +200,13 @@ class PelecardDonationAPI
         $data = $this->getParameter('ResultData');
         $this->stringToArray($data);
 
+        $cardtype = $data['CreditCardCompanyIssuer'] . '';
+        $cardnum = $data['CreditCardNumber'] . '';
+        $cardexp = $data['CreditCardExpDate'] . '';
         $amount = $contribution->total_amount;
+        $installments = $data['TotalPayments'];
+        $firstpay = $amount;
+
 
         $this->vars_pay = [];
         $this->setParameter("ConfirmationKey", $ConfirmationKey);
