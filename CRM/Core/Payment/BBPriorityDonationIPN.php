@@ -284,8 +284,8 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         // Charge donor for the first time
-        $copy_of_input = unserialize(serialize($input);
-        $copy_of_contribution = unserialize(serialize($contribution);
+        $copy_of_input = unserialize(serialize($input));
+        $copy_of_contribution = unserialize(serialize($contribution));
         if (!$this->_bbpAPI->firstCharge($paymentProcessor, $copy_of_input, $copy_of_contribution)) {
             CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
             echo "<h1>Unable to Charge the First Payment</h1>";
