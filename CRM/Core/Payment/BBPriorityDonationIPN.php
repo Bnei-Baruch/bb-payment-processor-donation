@@ -298,6 +298,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         // Charge donor for the first time
         if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution)) {
             CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
+            echo("<p>Unable to Charge the First Payment</p>");
             return false;
         }
 

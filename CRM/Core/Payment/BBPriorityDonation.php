@@ -414,7 +414,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         ));
         if (!$ipn->validateResult($this->_paymentProcessor, $input, $ids, $objects, TRUE, $paymentProcessorID)) {
             // CRM_Core_Error::debug_log_message("bbpriorityDonation Validation failed");
-            echo("bbpriorityDonation Validation failed");
+            echo("<p>bbpriorityDonation Validation failed</p>");
             exit();
         }
 
