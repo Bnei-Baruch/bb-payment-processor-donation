@@ -151,6 +151,7 @@ class PelecardDonationAPI
         $error = $this->getParameter('ErrorMessage');
 
         if ($code > 0) {
+            echo("Error: code=" . $code . "; message=" . $error);
             CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $code, "message" => $error]);
             return false;
         }
