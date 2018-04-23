@@ -215,13 +215,10 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
 //        $this->completeTransaction($input, $ids, $objects, $transaction, $recur);
         try {
             // @todo check if it is a repeat transaction & call repeattransaction instead.
-echo "<pre>";
-echo var_dump($this);
             civicrm_api3('contribution', 'completetransaction', array('id' => $input['PelecardTransactionId']));
         } catch (CiviCRM_API3_Exception $e) {
             if (!stristr($e->getMessage(), 'Contribution already completed')) {
                 echo($this->transaction_id . $e->getMessage());
-exit();
                 $this->redirectOrExit('success');
             } elseif ($this->transaction_id) {
                 civicrm_api3('contribution', 'create', array('id' => $this->transaction_id, 'contribution_status_id' =>
