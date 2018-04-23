@@ -147,10 +147,11 @@ class PelecardDonationAPI
 
         $json = $this->arrayToJson();
         $this->Services($json, '/DebitRegularType');
-        $error = $this->getParameter('Error');
+        $code = $this->getParameter('StatusCode');
+        $error = $this->getParameter('ErrorMessage');
 
-        if (is_array($error) && $error['ErrCode'] > 0) {
-            CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
+        if ($code > 0) {
+            CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $code, "message" => $error]);
             return false;
         }
         // Store all parameters in DB

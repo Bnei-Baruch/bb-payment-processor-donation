@@ -215,10 +215,13 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
 //        $this->completeTransaction($input, $ids, $objects, $transaction, $recur);
         try {
             // @todo check if it is a repeat transaction & call repeattransaction instead.
-            civicrm_api3('contribution', 'completetransaction', array('id' => $this->transaction_id));
+echo "<pre>";
+echo var_dump($this);
+            civicrm_api3('contribution', 'completetransaction', array('id' => $input['PelecardTransactionId']));
         } catch (CiviCRM_API3_Exception $e) {
             if (!stristr($e->getMessage(), 'Contribution already completed')) {
-                $this->handleError('error', $this->transaction_id . $e->getMessage(), 'ipn_completion', 9000, 'An error may have occurred. Please check your receipt is correct');
+                echo($this->transaction_id . $e->getMessage());
+exit();
                 $this->redirectOrExit('success');
             } elseif ($this->transaction_id) {
                 civicrm_api3('contribution', 'create', array('id' => $this->transaction_id, 'contribution_status_id' =>
@@ -296,15 +299,12 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         // Charge donor for the first time
-        $copy_of_input = unserialize(serialize($input));
-        $copy_of_contribution = unserialize(serialize($contribution));
-        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $copy_of_input, $copy_of_contribution)) {
+        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution)) {
             CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
-            echo "<h1>Unable to Charge the First Payment</h1>";
             return false;
         }
 
-        $contribution->txrn_id = $valid;
+        $contribution->transaction_id = $valid;
         return true;
     }
 
