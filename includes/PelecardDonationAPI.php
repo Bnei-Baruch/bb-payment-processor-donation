@@ -206,6 +206,7 @@ class PelecardDonationAPI
         $data = $this->getParameter('ResultData');
         $this->stringToArray($data);
 
+        $token = $data['Token'] . '';
         $cardtype = $data['CreditCardCompanyIssuer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';
@@ -254,10 +255,11 @@ class PelecardDonationAPI
             7 => array($installments, 'String'),
             8 => array(http_build_query($data), 'String'),
             9 => array($amount, 'String'),
+            10 => array($token, 'String'),
         );
         CRM_Core_DAO::executeQuery(
-            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, created_at) 
-                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, NOW())', $query_params);
+            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
+                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, NOW())', $query_params);
 
         return true;
     }
