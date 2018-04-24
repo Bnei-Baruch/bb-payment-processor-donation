@@ -215,6 +215,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
 
         $input['is_email_receipt'] = 0;
         $this->completeTransaction($input, $ids, $objects, $transaction, $recur);
+        return TRUE;
     }
 
     function getInput(&$input, &$ids)
