@@ -209,7 +209,7 @@ class PelecardDonationAPI
         $cardtype = $data['CreditCardCompanyIssuer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';
-        $amount = $data['DebitTotal'] / 100.00;
+        $amount = $contribution->total_amount;
         $installments = $data['TotalPayments'];
         if ($installments == 1) {
             $firstpay = $amount;
