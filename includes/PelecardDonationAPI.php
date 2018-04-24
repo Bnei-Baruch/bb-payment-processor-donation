@@ -154,37 +154,15 @@ class PelecardDonationAPI
             echo("Error: " . $error . " (" . $code . ")");
             return false;
         }
-        // Store all parameters in DB
-        $data = $this->vars_pay['ResultData'];
-        $PelecardTransactionId = $data['PelecardTransactionId'] . '';
-        $cardtype = $data['CreditCardCompanyIssuer'] . '';
-        $cardnum = $data['CreditCardNumber'] . '';
-        $cardexp = $data['CreditCardExpDate'] . '';
-        $installments = $data['TotalPayments'];
-        $firstpay = $amount;
-
-        $query_params = array(
-            1 => array($PelecardTransactionId, 'String'),
-            2 => array($cid, 'String'),
-            3 => array($cardtype, 'String'),
-            4 => array($cardnum, 'String'),
-            5 => array($cardexp, 'String'),
-            6 => array($firstpay, 'String'),
-            7 => array($installments, 'String'),
-            8 => array(http_build_query($data), 'String'),
-            9 => array($amount, 'String'),
-            10 => array($token, 'String'),
-        );
-        CRM_Core_DAO::executeQuery(
-            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, created_at) 
-                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, NOW())', $query_params);
 
         return true;
     }
 
     /****** Validate Response ******/
-    function validateResponse($processor, $data, $contribution, $errors)
+    function validateResponse($processor, $data, $contribution, $errors, $save)
     {
+        $cid = $contribution->id;
+
         $PelecardTransactionId = $data['PelecardTransactionId'] . '';
         $PelecardStatusCode = $data['PelecardStatusCode'] . '';
         if ($PelecardStatusCode > 0) {
@@ -228,7 +206,16 @@ class PelecardDonationAPI
         $data = $this->getParameter('ResultData');
         $this->stringToArray($data);
 
-        $amount = $contribution->total_amount;
+        $cardtype = $data['CreditCardCompanyIssuer'] . '';
+        $cardnum = $data['CreditCardNumber'] . '';
+        $cardexp = $data['CreditCardExpDate'] . '';
+        $amount = $data['DebitTotal'] / 100.00;
+        $installments = $data['TotalPayments'];
+        if ($installments == 1) {
+            $firstpay = $amount;
+        } else {
+            $firstpay = $data['FirstPaymentTotal'] / 100.00;
+        }
 
         $this->vars_pay = [];
         $this->setParameter("ConfirmationKey", $ConfirmationKey);
@@ -250,6 +237,27 @@ class PelecardDonationAPI
             CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
             return false;
         }
+
+        if (!$save) {
+            return true;
+        }
+
+
+        // Store all parameters in DB
+        $query_params = array(
+            1 => array($PelecardTransactionId, 'String'),
+            2 => array($cid, 'String'),
+            3 => array($cardtype, 'String'),
+            4 => array($cardnum, 'String'),
+            5 => array($cardexp, 'String'),
+            6 => array($firstpay, 'String'),
+            7 => array($installments, 'String'),
+            8 => array(http_build_query($data), 'String'),
+            9 => array($amount, 'String'),
+        );
+        CRM_Core_DAO::executeQuery(
+            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, created_at) 
+                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, NOW())', $query_params);
 
         return true;
     }

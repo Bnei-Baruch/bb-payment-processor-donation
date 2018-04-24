@@ -196,11 +196,6 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
 
         $transaction = new CRM_Core_Transaction();
         if ($input['PelecardStatusCode'] != self::BBP_RESPONSE_CODE_ACCEPTED) {
-            //      $error = self::trimAmount($input['Ds_Response']);
-            //      if (array_key_exists($error, $this->_errors)) {
-            //        $input['reasonCode'] = $this->_errors[$error];
-            //      }
-
             CRM_Core_Error::debug_log_message("BBPD IPN Response: About to cancel contribution \n input: " . print_r($input, TRUE) . "\n ids: " . print_r($ids, TRUE) . "\n objects: " . print_r($objects, TRUE));
             return $this->cancelled($objects, $transaction, $input);
         }
@@ -272,7 +267,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         $contribution = &$objects['contribution'];
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors);
+        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false);
 
         if (!$valid) {
             $query_params = array(
@@ -289,6 +284,19 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution)) {
             CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
             echo("<p>Unable to Charge the First Payment</p>");
+            return false;
+        }
+
+        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, true);
+
+        if (!$valid) {
+            $query_params = array(
+                1 => array($contribution->id, 'String')
+            );
+            CRM_Core_DAO::executeQuery(
+                'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
+
+            CRM_Core_Error::debug_log_message("Pelecard Response is invalid");
             return false;
         }
 
