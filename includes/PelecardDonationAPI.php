@@ -41,7 +41,7 @@ class PelecardDonationAPI
     function getRedirectUrl()
     {
         // Push constant parameters
-        $this->setParameter("ActionType", 'J2');
+        $this->setParameter("ActionType", 'J5'); // Approved Transaction -- DebitApproveNumber
         $this->setParameter("CardHolderName", 'hide');
         $this->setParameter("CustomerIdField", 'hide');
         $this->setParameter("CreateToken", 'True');
@@ -75,6 +75,44 @@ class PelecardDonationAPI
         } else {
             return array('000', 'Unknown error: ' . $error);
         }
+    }
+
+    /****** First Charge Donation Request ******/
+    function firstCharge($paymentProcessor, $input, $contribution)
+    {
+        $token = $input['Token'] . '';
+        $cid = $contribution->id;
+        $amount = $contribution->total_amount;
+
+        $this->vars_pay = [];
+        $this->setParameter("ActionType", 'J4'); // Debit action
+        $this->setParameter("terminalNumber", $paymentProcessor["signature"]);
+        $this->setParameter("user", $paymentProcessor["user_name"]);
+        $this->setParameter("password", $paymentProcessor["password"]);
+        $this->setParameter("ShopNo", "100");
+        $this->setParameter("token", $token);
+        $this->setParameter("ParamX", 'civicrm-' . $cid);
+        $this->setParameter("total", $amount * 100);
+        if ($contribution->currency == "EUR") {
+            $currency = 978;
+        } elseif ($contribution->currency == "USD") {
+            $currency = 2;
+        } else { // ILS -- default
+            $currency = 1;
+        }
+        $this->setParameter("currency", $currency);
+
+        $json = $this->arrayToJson();
+        $this->Services($json, '/DebitRegularType');
+        $code = $this->getParameter('StatusCode');
+        $error = $this->getParameter('ErrorMessage');
+
+        if ($code > 0) {
+            echo("Error: " . $error . " (" . $code . ")");
+            return false;
+        }
+
+        return true;
     }
 
     function connect($params, $action)
@@ -119,43 +157,6 @@ class PelecardDonationAPI
         } else {
             $this->stringToArray($result);
         }
-    }
-
-    /****** First Charge Donation Request ******/
-    function firstCharge($paymentProcessor, $input, $contribution)
-    {
-        $token = $input['Token'] . '';
-        $cid = $contribution->id;
-        $amount = $contribution->total_amount;
-
-        $this->vars_pay = [];
-        $this->setParameter("terminalNumber", $paymentProcessor["signature"]);
-        $this->setParameter("user", $paymentProcessor["user_name"]);
-        $this->setParameter("password", $paymentProcessor["password"]);
-        $this->setParameter("ShopNo", "100");
-        $this->setParameter("token", $token);
-        $this->setParameter("ParamX", 'civicrm-' . $cid);
-        $this->setParameter("total", $amount * 100);
-        if ($contribution->currency == "EUR") {
-            $currency = 978;
-        } elseif ($contribution->currency == "USD") {
-            $currency = 2;
-        } else { // ILS -- default
-            $currency = 1;
-        }
-        $this->setParameter("currency", $currency);
-
-        $json = $this->arrayToJson();
-        $this->Services($json, '/DebitRegularType');
-        $code = $this->getParameter('StatusCode');
-        $error = $this->getParameter('ErrorMessage');
-
-        if ($code > 0) {
-            echo("Error: " . $error . " (" . $code . ")");
-            return false;
-        }
-
-        return true;
     }
 
     /****** Validate Response ******/

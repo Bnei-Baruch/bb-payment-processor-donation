@@ -35,7 +35,7 @@ function bbpriorityDonation_civicrm_install() {
     'billing_mode' => 'notify', // Corresponds to the Processor Type: Form (1), Button (2), Special (3) or Notify (4)
     'user_name_label' => 'User',
     'password_label' => 'Password',
-    'signature_label' => 'Terminal',
+    'signature_label' => 'Donations Terminal',
     //    'subject_label' => 'Subject',
     'url_site_default' => 'http://www.kab.co.il/images/hebmain/logo1.png',
     //    'url_api_default' => 'http://www.example.co.il/',
