@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS civicrm_bb_payment_responses (
   response     TEXT            NOT NULL                       COMMENT 'Response from Pelecard AS IS',
   amount       DECIMAL(20, 2)           DEFAULT NULL          COMMENT 'Total payment amount',
   token        VARCHAR(255)             DEFAULT NULL          COMMENT 'Token from Pelecard',
+  approval     VARCHAR(10)              DEFAULT NULL          COMMENT 'DebitApproveNumber from Pelecard',
   created_at   DATETIME                                       COMMENT 'Date Time of Response',
 
   PRIMARY KEY (id),
