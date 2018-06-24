@@ -91,7 +91,7 @@ class PelecardDonationAPI
         $this->setParameter("password", $paymentProcessor["password"]);
         $this->setParameter("ShopNo", "100");
         $this->setParameter("token", $token);
-        $this->setParameter("authorizatonNumber", $approval);
+        $this->setParameter("authorizationNumber", $approval);
         $this->setParameter("ParamX", 'civicrm-' . $cid);
         $this->setParameter("total", $amount * 100);
         if ($contribution->currency == "EUR") {
