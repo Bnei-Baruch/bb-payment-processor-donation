@@ -78,7 +78,7 @@ class PelecardDonationAPI
     }
 
     /****** First Charge Donation Request ******/
-    function firstCharge($paymentProcessor, $input, $contribution)
+    function firstCharge($paymentProcessor, $input, $contribution, $approval)
     {
         $token = $input['Token'] . '';
         $cid = $contribution->id;
@@ -91,6 +91,7 @@ class PelecardDonationAPI
         $this->setParameter("password", $paymentProcessor["password"]);
         $this->setParameter("ShopNo", "100");
         $this->setParameter("token", $token);
+        $this->setParameter("AuthNum", $approval);
         $this->setParameter("ParamX", 'civicrm-' . $cid);
         $this->setParameter("total", $amount * 100);
         if ($contribution->currency == "EUR") {
@@ -160,7 +161,7 @@ class PelecardDonationAPI
     }
 
     /****** Validate Response ******/
-    function validateResponse($processor, $data, $contribution, $errors, $save)
+    function validateResponse($processor, $data, $contribution, $errors, $save, $approval)
     {
         $cid = $contribution->id;
 
@@ -211,7 +212,6 @@ class PelecardDonationAPI
         $cardtype = $data['CreditCardCompanyIssuer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';
-        $approval = $data['DebitApproveNumber'] . '';
         $amount = $contribution->total_amount;
         $installments = $data['TotalPayments'];
         if ($installments == 1) {

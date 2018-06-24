@@ -267,7 +267,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         $contribution = &$objects['contribution'];
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false);
+        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, 0);
 
         if (!$valid) {
             $query_params = array(
@@ -280,14 +280,16 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             return false;
         }
 
+        $approval = $input['DebitApproveNumber'] . '';
+
         // Charge donor for the first time
-        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution)) {
+        if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $approval)) {
             CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
             echo("<p>Unable to Charge the First Payment</p>");
             return false;
         }
 
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, true);
+        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, true, $approval);
 
         if (!$valid) {
             $query_params = array(
