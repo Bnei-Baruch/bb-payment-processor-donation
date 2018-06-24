@@ -161,7 +161,7 @@ class PelecardDonationAPI
     }
 
     /****** Validate Response ******/
-    function validateResponse($processor, $data, $contribution, $errors, $save, $approval)
+    function validateResponse($processor, $data, $contribution, $errors, $save, &$approval)
     {
         $cid = $contribution->id;
 
@@ -209,6 +209,9 @@ class PelecardDonationAPI
         $this->stringToArray($data);
 
         $token = $data['Token'] . '';
+        if (!$save) {
+            $approval = $data['DebitApproveNumber'] . '';
+        }
         $cardtype = $data['CreditCardCompanyIssuer'] . '';
         $cardnum = $data['CreditCardNumber'] . '';
         $cardexp = $data['CreditCardExpDate'] . '';

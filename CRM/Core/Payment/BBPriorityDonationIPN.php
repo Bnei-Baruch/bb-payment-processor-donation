@@ -267,7 +267,8 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
 
         $contribution = &$objects['contribution'];
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, 0);
+        $approval = 0;
+        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
 
         if (!$valid) {
             $query_params = array(
@@ -279,8 +280,6 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             CRM_Core_Error::debug_log_message("Pelecard Response is invalid");
             return false;
         }
-
-        $approval = $input['DebitApproveNumber'] . '';
 
         // Charge donor for the first time
         if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $approval)) {
