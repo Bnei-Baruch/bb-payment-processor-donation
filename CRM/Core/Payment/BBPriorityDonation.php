@@ -305,6 +305,10 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         $pelecard->setParameter("CancelUrl", $cancelURL);
         $amount = $params["amount"];
         $pelecard->setParameter("Total", $amount * 100);
+        if (($params["amount"] * 100) <= 0) {
+            CRM_Core_Error::fatal(ts('Amount must be positive!!!'));
+            exit();
+        }
 
         if ($params["currencyID"] == "EUR") {
             $currency = 978;
