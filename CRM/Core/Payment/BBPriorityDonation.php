@@ -381,7 +381,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
                 $pelecard->setParameter("Language", 'EN');
             }
             $pelecard->setParameter("LogoUrl", "https://checkout.arvut.org/arvut_logo.png");
-        } elseif ($nick_name == 'mish') {
+        } elseif ($nick_name == 'meshp18') {
             $pelecard->setParameter("TopText", 'משפחה בחיבור');
             $pelecard->setParameter("BottomText", '© משפחה בחיבור');
             $pelecard->setParameter("Language", 'HE');
