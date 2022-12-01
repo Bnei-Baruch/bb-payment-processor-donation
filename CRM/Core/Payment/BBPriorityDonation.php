@@ -385,7 +385,6 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
             $pelecard->setParameter("TopText", 'משפחה בחיבור');
             $pelecard->setParameter("BottomText", '© משפחה בחיבור');
             $pelecard->setParameter("Language", 'HE');
-            $pelecard->setCS('cs_payments', 'מספר תשלומים (לתושבי ישראל בלבד)');
             $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
             $pelecard->setParameter('TextOnConfirmationBox', 'אני מסכים עם תנאי השימוש');
             $pelecard->setParameter('ConfirmationLink', 'https://www.1family.co.il/privacy-policy/');
