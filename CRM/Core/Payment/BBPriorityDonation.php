@@ -344,7 +344,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment
         $lang = strtoupper($language->language);
         if ($nick_name == 'ben2') {
             if ($lang == 'HE') {
-                $pelecard->setParameter("TopText", 'סכום התרומה: ' . $amount . $params["currencyID"]);
+                $pelecard->setParameter("TopText", 'סכום לתשלום בהוראת קבע: ' . $amount . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© בני ברוך קבלה לעם');
                 $pelecard->setParameter("Language", 'HE');
                 $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
