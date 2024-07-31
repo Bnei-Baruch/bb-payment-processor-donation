@@ -294,7 +294,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
     }
 
     public function handlePaymentNotification() {
-        $ipnClass = new CRM_Core_Payment_BBPriorityDonationIPN();
+        $ipnClass = new CRM_Core_Payment_BBPriorityDonationIPN(array_merge($_GET, $_REQUEST));
 
         $input = $ids = array();
         $ipnClass->getInput($input, $ids);
