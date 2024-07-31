@@ -1,15 +1,12 @@
 <?php
 
-class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
-{
-    CONST BBP_RESPONSE_CODE_ACCEPTED = '000';
-    private $_errors;
+use Civi\Api4\Contribution;
+
+class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
+    const BBP_RESPONSE_CODE_ACCEPTED = '000';
     private $_bbpAPI;
 
-    function __construct()
-    {
-        parent::__construct();
-
+    function __construct($inputData) {
         $this->_bbpAPI = new PelecardDonationAPI;
         $this->errors = [
             '000' => 'Permitted transaction.',
@@ -188,53 +185,71 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             '599' => 'General error. Repeat action. ',
             '999' => 'Necessary values missing to complete installments transaction.',
         ];
+
+        $this->setInputParameters($inputData);
+        parent::__construct();
     }
 
-    function single(&$input, &$ids, &$objects, $recur = FALSE, $first = FALSE)
-    {
-        $contribution = &$objects['contribution'];
+    function main(&$paymentProcessor, &$input, &$ids): void {
+        try {
+            $contributionStatuses = array_flip(CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id', 'validate'));
+            $contributionID = $input['contributionID'];
+            $contactID = self::retrieve('contactID', 'Integer');
+            $contribution = $this->getContribution($contributionID, $contactID);
 
-        $transaction = new CRM_Core_Transaction();
-        if ($input['PelecardStatusCode'] != self::BBP_RESPONSE_CODE_ACCEPTED) {
-            CRM_Core_Error::debug_log_message("BBPD IPN Response: About to cancel contribution \n input: " . print_r($input, TRUE) . "\n ids: " . print_r($ids, TRUE) . "\n objects: " . print_r($objects, TRUE));
-            return $this->cancelled($objects, $transaction, $input);
+            if ($input['PelecardStatusCode'] != self::BBP_RESPONSE_CODE_ACCEPTED) {
+                Civi::log('BBPCC IPN')->debug("BBPCC IPN Response: About to cancel contribution \n input: " . print_r($input, TRUE) . "\n ids: " . print_r($ids, TRUE));
+                $contribution->contribution_status_id = $contributionStatuses['Cancelled'];
+                $contribution->cancel_date = 'now';
+                $contribution->cancel_reason = 'CC failure ' . $input['PelecardStatusCode'];
+                $contribution->save(false);
+                echo 'Contribution aborted due to invalid code received from Pelecard: ' . $input['PelecardStatusCode'];
+                return;
+            }
+
+            $statusID = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_Contribution',
+                $contribution->id, 'contribution_status_id'
+            );
+            if ($statusID === $contributionStatuses['Completed']) {
+                Civi::log('BBPCC IPN')->debug('returning since contribution has already been handled');
+                return;
+            }
+
+            if (!$this->validateResult($paymentProcessor, $input, $contribution)) {
+                echo("bbpriorityDonation Validation failed");
+                return;
+            }
+
+            echo("bbpriorityDonation IPN success");
+            $this->redirectSuccess($input);
+            CRM_Utils_System::civiExit();
+        } catch (CRM_Core_Exception $e) {
+            Civi::log('BBPDonation IPN')->debug($e->getMessage());
+            echo 'Invalid or missing data';
         }
-        // check if contribution is already completed, if so we ignore this ipn
-        if ($contribution->contribution_status_id == 1) {
-            $transaction->commit();
-            CRM_Core_Error::debug_log_message("returning since contribution has already been handled");
-            echo "Success: Contribution has already been handled<p>";
-            return TRUE;
-        }
-
-
-        $input['is_email_receipt'] = 0;
-        $this->completeTransaction($input, $ids, $objects, $transaction, $recur);
-        return TRUE;
     }
 
-    function getInput(&$input, &$ids)
-    {
+    function getInput(&$input, &$ids) {
         $input = array(
             // GET Parameters
-            'module' => self::retrieve('md', 'String', 'GET', true),
-            'component' => self::retrieve('md', 'String', 'GET', true),
-            'qfKey' => self::retrieve('qfKey', 'String', 'GET', false),
-            'contributionID' => self::retrieve('contributionID', 'String', 'GET', true),
-            'contactID' => self::retrieve('contactID', 'String', 'GET', true),
-            'eventID' => self::retrieve('eventID', 'String', 'GET', false),
-            'participantID' => self::retrieve('participantID', 'String', 'GET', false),
-            'membershipID' => self::retrieve('membershipID', 'String', 'GET', false),
-            'contributionPageID' => self::retrieve('contributionPageID', 'String', 'GET', false),
-            'relatedContactID' => self::retrieve('relatedContactID', 'String', 'GET', false),
-            'onBehalfDupeAlert' => self::retrieve('onBehalfDupeAlert', 'String', 'GET', false),
-            'returnURL' => self::retrieve('returnURL', 'String', 'GET', false),
+            'module' => self::retrieve('md', 'String'),
+            'component' => self::retrieve('md', 'String'),
+            'qfKey' => self::retrieve('qfKey', 'String', false),
+            'contributionID' => self::retrieve('contributionID', 'String'),
+            'contactID' => self::retrieve('contactID', 'String'),
+            'eventID' => self::retrieve('eventID', 'String', false),
+            'participantID' => self::retrieve('participantID', 'String', false),
+            'membershipID' => self::retrieve('membershipID', 'String', false),
+            'contributionPageID' => self::retrieve('contributionPageID', 'String', false),
+            'relatedContactID' => self::retrieve('relatedContactID', 'String', false),
+            'onBehalfDupeAlert' => self::retrieve('onBehalfDupeAlert', 'String', false),
+            'returnURL' => self::retrieve('returnURL', 'String', false),
             // POST Parameters
-            'PelecardTransactionId' => self::retrieve('PelecardTransactionId', 'String', 'POST', true),
-            'PelecardStatusCode' => self::retrieve('PelecardStatusCode', 'String', 'POST', true),
-            'Token' => self::retrieve('Token', 'String', 'POST', true),
-            'ConfirmationKey' => self::retrieve('ConfirmationKey', 'String', 'POST', true),
-            'UserKey' => self::retrieve('UserKey', 'String', 'POST', true),
+            'PelecardTransactionId' => self::retrieve('PelecardTransactionId', 'String'),
+            'PelecardStatusCode' => self::retrieve('PelecardStatusCode', 'String'),
+            'Token' => self::retrieve('Token', 'String'),
+            'ConfirmationKey' => self::retrieve('ConfirmationKey', 'String'),
+            'UserKey' => self::retrieve('UserKey', 'String'),
         );
 
         $ids = array(
@@ -251,23 +266,23 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
         }
     }
 
-    function validateResult($paymentProcessor, &$input, &$ids, &$objects, $required = TRUE, $paymentProcessorID = NULL)
-    {
-        // This also initializes $objects
-        if (!parent::validateData($input, $ids, $objects, $required, $paymentProcessorID)) {
-            CRM_Core_Error::debug_log_message("\n\nparent::validateResult: VALIDATION ERROR\n\n");
-            echo "<h1>Error: \n\nvalidateResult: VALIDATION ERROR\n\n</h1>";
-            return false;
-        }
+    function redirectSuccess(&$input): void {
+        $returnURL = (new PelecardAPICC)->base64_url_decode($input['returnURL']);
 
+        // Print the tpl to redirect to success
+        $template = CRM_Core_Smarty::singleton();
+        $template->assign('url', $returnURL);
+        print $template->fetch('CRM/Core/Payment/BbpriorityDonation.tpl');
+    }
+
+    function validateResult($paymentProcessor, &$input, &$contribution) {
         if ($input['UserKey'] != $input['qfKey']) {
-            CRM_Core_Error::debug_log_message("Pelecard Response param UserKey is invalid");
-            echo "<h1>Pelecard Response param UserKey is invalid</h1>";
+            Civi::log('BBPDonation IPN')->debug("Pelecard Response param UserKey is invalid");
             return false;
         }
 
-        $contribution = &$objects['contribution'];
         $approval = 0;
+        $input['amount'] = $contribution['total_amount'];
         $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
 
         if (!$valid) {
@@ -277,13 +292,13 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             CRM_Core_DAO::executeQuery(
                 'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
 
-            CRM_Core_Error::debug_log_message("Pelecard Response is invalid");
+            Civi::log('BBPDonation IPN')->debug("Pelecard Response is invalid");
             return false;
         }
 
         // Charge donor for the first time
         if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $approval)) {
-            CRM_Core_Error::debug_log_message("Unable to Charge the First Payment");
+            Civi::log('BBPDonation IPN')->debug("Unable to Charge the First Payment");
             echo("<p>Unable to Charge the First Payment</p>");
             return false;
         }
@@ -297,28 +312,35 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN
             CRM_Core_DAO::executeQuery(
                 'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
 
-            CRM_Core_Error::debug_log_message("Pelecard Response is invalid");
+            Civi::log('BBPDonation IPN')->debug("Pelecard Response is invalid");
             return false;
         }
 
-        $contribution->trxn_id = $valid;
+        $contribution['txrn_id'] = $valid;
         return true;
     }
 
-    static function retrieve($name, $type, $location = 'POST', $abort = true)
-    {
-        static $store = null;
-        $value = CRM_Utils_Request::retrieve($name, $type, $store, false, null, $location);
-        if ($abort && $value === null) {
-            CRM_Core_Error::debug_log_message("Could not find an entry for $name in $location");
-            echo "Failure: Missing Parameter: $name<p>";
-            exit();
+    public function retrieve($name, $type, $abort = TRUE, $default = NULL) {
+        $value = CRM_Utils_Type::validate(
+            empty($this->_inputParameters[$name]) ? $default : $this->_inputParameters[$name],
+            $type,
+            FALSE
+        );
+        if ($abort && $value === NULL) {
+            throw new CRM_Core_Exception("Could not find an entry for $name");
         }
         return $value;
     }
 
-    static function trimAmount($amount, $pad = '0')
-    {
-        return ltrim(trim($amount), $pad);
+    private function getContribution($contribution_id, $contactID) {
+        $contribution = new CRM_Contribute_BAO_Contribution();
+        $contribution->id = $contribution_id;
+        if (!$contribution->find(TRUE)) {
+            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $this->contribution->id, NULL, ['context' => "Could not find contribution record: {$this->contribution->id} in IPN request: "]);
+        }
+        if ((int) $contribution->contact_id !== $contactID) {
+            Civi::log("Contact ID in IPN not found but contact_id found in contribution.");
+        }
+        return $contribution;
     }
 }

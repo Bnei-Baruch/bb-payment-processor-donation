@@ -1,19 +1,16 @@
 <?php
 
-class PelecardDonationAPI
-{
+class PelecardDonationAPI {
     /******  Array of request data ******/
     var $vars_pay = array();
 
     /******  Set parameter ******/
-    function setParameter($key, $value)
-    {
+    function setParameter($key, $value) {
         $this->vars_pay[$key] = $value;
     }
 
     /******  Get parameter ******/
-    function getParameter($key)
-    {
+    function getParameter($key) {
         if (isset($this->vars_pay[$key])) {
             return $this->vars_pay[$key];
         } else {
@@ -22,14 +19,12 @@ class PelecardDonationAPI
     }
 
     /******  Convert Hash to JSON ******/
-    function arrayToJson()
-    {
+    function arrayToJson() {
         return json_encode($this->vars_pay); //(PHP 5 >= 5.2.0)
     }
 
     /******  Convert String to Hash ******/
-    function stringToArray($data)
-    {
+    function stringToArray($data) {
         if (is_array($data)) {
             $this->vars_pay = $data;
         } else {
@@ -38,8 +33,7 @@ class PelecardDonationAPI
     }
 
     /****** Request URL from PeleCard ******/
-    function getRedirectUrl()
-    {
+    function getRedirectUrl() {
         // Push constant parameters
         $this->setParameter("ActionType", 'J5'); // Approved Transaction -- DebitApproveNumber
         $this->setParameter("CardHolderName", 'hide');
@@ -78,8 +72,7 @@ class PelecardDonationAPI
     }
 
     /****** First Charge Donation Request ******/
-    function firstCharge($paymentProcessor, $input, $contribution, $approval)
-    {
+    function firstCharge($paymentProcessor, $input, $contribution, $approval) {
         $token = $input['Token'] . '';
         $cid = $contribution->id;
         $amount = $contribution->total_amount;
@@ -116,8 +109,7 @@ class PelecardDonationAPI
         return true;
     }
 
-    function connect($params, $action)
-    {
+    function connect($params, $action) {
         $ch = curl_init('https://gateway20.pelecard.biz/PaymentGW' . $action);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
@@ -138,8 +130,7 @@ class PelecardDonationAPI
         }
     }
 
-    function Services($params, $action)
-    {
+    function Services($params, $action) {
         $ch = curl_init('https://gateway20.pelecard.biz/services' . $action);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
@@ -161,8 +152,7 @@ class PelecardDonationAPI
     }
 
     /****** Validate Response ******/
-    function validateResponse($processor, $data, $contribution, $errors, $save, &$approval)
-    {
+    function validateResponse($processor, $data, $contribution, $errors, $save, &$approval) {
         $cid = $contribution->id;
 
         $PelecardTransactionId = $data['PelecardTransactionId'] . '';
@@ -170,7 +160,7 @@ class PelecardDonationAPI
         if ($PelecardStatusCode > 0) {
             $query_params = array(
                 1 => array($PelecardStatusCode, 'String'),
-                2 => array($contribution->id, 'String')
+                2 => array($cid, 'String')
             );
             CRM_Core_DAO::executeQuery(
                 'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
@@ -196,7 +186,7 @@ class PelecardDonationAPI
         if (is_array($error) && $error['ErrCode'] > 0) {
             $query_params = array(
                 1 => array($error['ErrCode'], 'String'),
-                2 => array($contribution->id, 'String')
+                2 => array($cid, 'String')
             );
             CRM_Core_DAO::executeQuery(
                 'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
@@ -235,7 +225,7 @@ class PelecardDonationAPI
         if (is_array($error) && $error['ErrCode'] > 0) {
             $query_params = array(
                 1 => array($error['ErrCode'], 'String'),
-                2 => array($contribution->id, 'String')
+                2 => array($cid, 'String')
             );
             CRM_Core_DAO::executeQuery(
                 'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
@@ -247,7 +237,6 @@ class PelecardDonationAPI
         if (!$save) {
             return true;
         }
-
 
         // Store all parameters in DB
         $query_params = array(
@@ -271,13 +260,11 @@ class PelecardDonationAPI
     }
 
     /******  Base64 Functions  ******/
-    function base64_url_encode($input)
-    {
+    function base64_url_encode($input) {
         return strtr(base64_encode($input), '+/', '-_');
     }
 
-    function base64_url_decode($input)
-    {
+    function base64_url_decode($input) {
         return base64_decode(strtr($input, '-_', '+/'));
     }
 }
