@@ -267,7 +267,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
     }
 
     function redirectSuccess(&$input): void {
-        $returnURL = (new PelecardAPICC)->base64_url_decode($input['returnURL']);
+        $returnURL = (new PelecardDonationAPI)->base64_url_decode($input['returnURL']);
 
         // Print the tpl to redirect to success
         $template = CRM_Core_Smarty::singleton();
@@ -282,7 +282,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         }
 
         $approval = 0;
-        $input['amount'] = $contribution['total_amount'];
+        $input['amount'] = $contribution->total_amount;
         $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
 
         if (!$valid) {
@@ -316,7 +316,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
             return false;
         }
 
-        $contribution['txrn_id'] = $valid;
+        $contribution->txrn_id = $valid;
         return true;
     }
 
