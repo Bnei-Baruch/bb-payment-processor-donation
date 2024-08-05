@@ -340,6 +340,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         }
         if ((int) $contribution->contact_id !== $contactID) {
             Civi::log("Contact ID in IPN not found but contact_id found in contribution.");
+            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution_id . ' and ' . $contactID, NULL, ['context' => "Could not find contribution record: {$contribution_id} in IPN request: "]);
         }
         return $contribution;
     }
