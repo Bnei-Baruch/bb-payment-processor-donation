@@ -220,12 +220,28 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
                 return;
             }
 
+            // mark payment as Completed (1)
+            self::updateRecord($contributionID, array('contribution_status_id' => $contributionStatuses['Refunded']));
+
+
             echo("bbpriorityDonation IPN success");
             $this->redirectSuccess($input);
             CRM_Utils_System::civiExit();
         } catch (CRM_Core_Exception $e) {
             Civi::log('BBPDonation IPN')->debug($e->getMessage());
             echo 'Invalid or missing data';
+        }
+    }
+
+    static function updateRecord($id, $params) {
+        try {
+            $contribution = new CRM_Contribute_BAO_Contribution();
+            $contribution->id = $id;
+            $contribution->create($params);
+        } catch (CRM_Core_Exception $e) {
+            $error = $e->getMessage();
+            Civi::log("Internal error" . $error);
+            throw new CRM_Core_Exception('Failure: Could not update record for ' . (int)$id, NULL, ['context' => "Could not update record: {$id}: "]);
         }
     }
 
@@ -336,11 +352,11 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         $contribution = new CRM_Contribute_BAO_Contribution();
         $contribution->id = $contribution_id;
         if (!$contribution->find(TRUE)) {
-            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution_id, NULL, ['context' => "Could not find contribution record: {$contribution_id} in IPN request: "]);
+            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution_id, NULL, ['context' => "Could not find contribution record: {$this->contribution->id} in IPN request: "]);
         }
         if ((int) $contribution->contact_id !== $contactID) {
             Civi::log("Contact ID in IPN not found but contact_id found in contribution.");
-            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution_id . ' and ' . $contactID, NULL, ['context' => "Could not find contribution record: {$contribution_id} in IPN request: "]);
+	    throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution_id . ' and ' . $contactID, NULL, ['context' => "Could not find contribution record: {$contribution_id} in IPN request: "]);
         }
         return $contribution;
     }
