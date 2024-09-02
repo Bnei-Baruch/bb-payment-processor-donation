@@ -167,7 +167,7 @@ class PelecardDonationAPI {
 
             CRM_Core_Error::debug_log_message("Error: " . $PelecardStatusCode);
             echo "<h1>Error: " . $PelecardStatusCode . ': ' . $errors[$PelecardStatusCode] . "</h1>";
-            return false;
+            return [false, null];
         }
 
         $ConfirmationKey = $data['ConfirmationKey'] . '';
@@ -192,7 +192,7 @@ class PelecardDonationAPI {
                 'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
 
             CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
-            return false;
+            return [false, null];
         }
 
         $data = $this->getParameter('ResultData');
@@ -231,11 +231,11 @@ class PelecardDonationAPI {
                 'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
 
             CRM_Core_Error::debug_log_message("Error[{error}]: {message}", ["error" => $error['ErrCode'], "message" => $error['ErrMsg']]);
-            return false;
+            return [false, null];
         }
 
         if (!$save) {
-            return true;
+            return [true, $data];
         }
 
         // Store all parameters in DB
@@ -256,7 +256,7 @@ class PelecardDonationAPI {
             'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, approval, created_at) 
                    VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, %11, NOW())', $query_params);
 
-        return true;
+        return [true, $data];
     }
 
     /******  Base64 Functions  ******/

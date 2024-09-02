@@ -112,11 +112,8 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
 
         $params['trxn_id'] = $this->setTrxnId($this->_mode);
         //Total amount is from the form contribution field
-        $amount = $this->_getParam('total_amount');
-        if (empty($amount)) {
-            $amount = $this->_getParam('amount');
-        }
-        if ($params["amount"] < 0) {
+        $amount = $params['total_amount'];
+        if ($amount <= 0) {
             throw new PaymentProcessorException(ts('Amount must be positive!!!'), 9004);
         }
         $params['gross_amount'] = $amount;
@@ -176,28 +173,6 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
             . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
             . '&returnURL=' . $pelecard->base64_url_encode($returnURL);
 
-        $pelecard->setParameter("user", $this->_paymentProcessor["user_name"]);
-        $pelecard->setParameter("password", $this->_paymentProcessor["password"]);
-        $pelecard->setParameter("terminal", $this->_paymentProcessor["signature"]);
-
-        $pelecard->setParameter("UserKey", $params['qfKey']);
-        $pelecard->setParameter("ParamX", 'civicrm-' . $params['contributionID']);
-
-        //    $sandBoxUrl = 'https://gateway20.pelecard.biz/sandbox/landingpage?authnum=123';
-        $pelecard->setParameter("GoodUrl", $merchantUrl); // ReturnUrl should be used _AFTER_ payment confirmation
-        $pelecard->setParameter("ErrorUrl", $merchantUrl);
-        $pelecard->setParameter("CancelUrl", $cancelURL);
-
-        $pelecard->setParameter("Total", $amount * 100);
-        if ($params["currencyID"] == "EUR") {
-            $currency = 978;
-        } elseif ($params["currencyID"] == "USD") {
-            $currency = 2;
-        } else { // ILS -- default
-            $currency = 1;
-        }
-        $pelecard->setParameter("Currency", $currency);
-
         $financialTypeID = self::array_column_recursive_first($params, "financialTypeID");
         if (empty($financialTypeID)) {
             $financialTypeID = self::array_column_recursive_first($params, "financial_type_id");
@@ -219,9 +194,14 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
             'account_relationship' => 1,
         ));
 
-        global $language;
-        $lang = strtoupper($language->language);
-        $pelecard->setParameter("Language", $lang);
+        if ($lang == 'HE') {
+		$pelecard->setParameter("Language", 'he');
+	} else if ($lang == 'RU') {
+		$pelecard->setParameter("Language", 'ru');
+	} else {
+		$pelecard->setParameter("Language", 'en');
+	}
+
         if ($nick_name == 'ben2') {
             if ($lang == 'HE') {
                 $pelecard->setParameter("TopText", 'סכום לתשלום בהוראת קבע: ' . $amount . $params["currencyID"]);
@@ -277,6 +257,28 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         } else if ((int)$installments > 0 && $params["amount"] >= (int)$min_amount) {
             $pelecard->setParameter("MaxPayments", $installments);
         }
+
+        $pelecard->setParameter("Total", $amount * 100);
+        if ($params["currencyID"] == "EUR") {
+            $currency = 978;
+        } elseif ($params["currencyID"] == "USD") {
+            $currency = 2;
+        } else { // ILS -- default
+            $currency = 1;
+        }
+        $pelecard->setParameter("Currency", $currency);
+
+        $pelecard->setParameter("user", $this->_paymentProcessor["user_name"]);
+        $pelecard->setParameter("password", $this->_paymentProcessor["password"]);
+        $pelecard->setParameter("terminal", $this->_paymentProcessor["signature"]);
+
+        $pelecard->setParameter("UserKey", $params['qfKey']);
+        $pelecard->setParameter("ParamX", 'civicrm-' . $params['contributionID']);
+
+        //    $sandBoxUrl = 'https://gateway20.pelecard.biz/sandbox/landingpage?authnum=123';
+        $pelecard->setParameter("GoodUrl", $merchantUrl); // ReturnUrl should be used _AFTER_ payment confirmation
+        $pelecard->setParameter("ErrorUrl", $merchantUrl);
+        $pelecard->setParameter("CancelUrl", $cancelURL);
 
         $result = $pelecard->getRedirectUrl();
         $error = $result[0];

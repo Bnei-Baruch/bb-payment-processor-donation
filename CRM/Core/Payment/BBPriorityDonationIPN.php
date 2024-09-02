@@ -1,6 +1,7 @@
 <?php
 
 use Civi\Api4\Contribution;
+use Civi\Api4\Contact;
 
 class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
     const BBP_RESPONSE_CODE_ACCEPTED = '000';
@@ -215,34 +216,46 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
                 return;
             }
 
-            if (!$this->validateResult($paymentProcessor, $input, $contribution)) {
+            list($valid, $data) = $this->validateResult($paymentProcessor, $input, $contribution);
+            if (!$valid) {
                 echo("bbpriorityDonation Validation failed");
                 return;
             }
 
-            // mark payment as Completed (1)
-            self::updateRecord($contributionID, array('contribution_status_id' => $contributionStatuses['Refunded']));
-
+            $this->updateContribution($contribution, $contactID, $data, $contributionStatuses['Completed']);
 
             echo("bbpriorityDonation IPN success");
             $this->redirectSuccess($input);
-            CRM_Utils_System::civiExit();
         } catch (CRM_Core_Exception $e) {
             Civi::log('BBPDonation IPN')->debug($e->getMessage());
-            echo 'Invalid or missing data';
+            echo 'Invalid or missing data: ' . $e->getMessage();
         }
     }
 
-    static function updateRecord($id, $params) {
-        try {
-            $contribution = new CRM_Contribute_BAO_Contribution();
-            $contribution->id = $id;
-            $contribution->create($params);
-        } catch (CRM_Core_Exception $e) {
-            $error = $e->getMessage();
-            Civi::log("Internal error" . $error);
-            throw new CRM_Core_Exception('Failure: Could not update record for ' . (int)$id, NULL, ['context' => "Could not update record: {$id}: "]);
-        }
+    function updateContribution($contribution, $contactID, $data, $status) {
+        // mark payment status
+        Contribution::update(false)
+            ->addWhere('id', '=', $contribution->id)
+            ->addValue('contribution_status_id', $status)
+            ->execute();
+
+        // update custom fields
+        $token = $data['Token'] . '';
+        $cardtype = $data['CreditCardCompanyIssuer']  ? $data['CreditCardCompanyIssuer'] . '' : '';
+        $cardnum = $data['CreditCardNumber'] ? $data['CreditCardNumber'] . '' : '';
+        $cardexp = $data['CreditCardExpDate'] ? $data['CreditCardExpDate'] . '' : '';
+
+        Contribution::update(false)
+            ->addWhere('id', '=', $contribution->id)
+            ->addValue('Payment_details.token', $token)
+            ->addValue('Payment_details.cardtype', $cardtype)
+            ->addValue('Payment_details.cardnum', $cardnum)
+            ->addValue('Payment_details.cardexp', $cardexp)
+            ->execute();
+        Contact::update(false)
+            ->addWhere('id', '=', $contactID)
+            ->addValue('general_token.gtoken', $token)
+            ->execute();
     }
 
     function getInput(&$input, &$ids) {
@@ -291,16 +304,15 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         print $template->fetch('CRM/Core/Payment/BbpriorityDonation.tpl');
     }
 
-    function validateResult($paymentProcessor, &$input, &$contribution) {
+    function validateResult(&$paymentProcessor, &$input, &$contribution) {
         if ($input['UserKey'] != $input['qfKey']) {
             Civi::log('BBPDonation IPN')->debug("Pelecard Response param UserKey is invalid");
-            return false;
+            return [false, null];
         }
 
         $approval = 0;
         $input['amount'] = $contribution->total_amount;
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
-
+        list($valid, $data) = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
         if (!$valid) {
             $query_params = array(
                 1 => array($contribution->id, 'String')
@@ -309,18 +321,17 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
                 'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
 
             Civi::log('BBPDonation IPN')->debug("Pelecard Response is invalid");
-            return false;
+            return [false, null];
         }
 
         // Charge donor for the first time
         if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $approval)) {
             Civi::log('BBPDonation IPN')->debug("Unable to Charge the First Payment");
             echo("<p>Unable to Charge the First Payment</p>");
-            return false;
+            return [false, null];
         }
 
-        $valid = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, true, $approval);
-
+        list($valid, $data) = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, true, $approval);
         if (!$valid) {
             $query_params = array(
                 1 => array($contribution->id, 'String')
@@ -329,11 +340,11 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
                 'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
 
             Civi::log('BBPDonation IPN')->debug("Pelecard Response is invalid");
-            return false;
+            return [true, $data];
         }
 
         $contribution->txrn_id = $valid;
-        return true;
+        return [true, $data];
     }
 
     public function retrieve($name, $type, $abort = TRUE, $default = NULL) {
