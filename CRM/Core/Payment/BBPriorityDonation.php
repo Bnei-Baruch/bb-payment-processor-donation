@@ -246,15 +246,9 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         }
 
         $pelecard->setParameter("MinPayments", 1);
-        $installments = civicrm_api3('FinancialAccount', 'getvalue', array('return' => "account_type_code", 'id' => $financial_account_id,));
-        try {
-            $min_amount = civicrm_api3('FinancialAccount', 'getvalue', array('return' => "description", 'id' => $financial_account_id,));
-        } catch (Exception $e) {
-            $min_amount = 0;
-        }
-        if ((int)$installments == 0) {
-            $pelecard->setParameter("MaxPayments", 1);
-        } else if ((int)$installments > 0 && $params["amount"] >= (int)$min_amount) {
+        $installments = 1;
+        $min_amount = 0;
+        if ($params["amount"] >= (int)$min_amount) {
             $pelecard->setParameter("MaxPayments", $installments);
         }
 
