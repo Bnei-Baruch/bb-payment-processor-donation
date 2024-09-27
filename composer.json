@@ -1,7 +1,7 @@
 {
-	"name": "bbpriority/donation",
+	"name": "bb/bb-payment-processor-donation",
 	"description": "(BBPD) BB Priority Donation Payment Processor",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"type": "civicrm-ext",
 	"homepage": "https://github.com/Bnei-Baruch/bbpriorityDonation",
 	"license": "AGPL-3.0",

@@ -19,7 +19,6 @@ function bbpriorityDonation_civicrm_config(&$config)
  */
 function bbpriorityDonation_civicrm_xmlMenu(&$files)
 {
-    _bbpriorityDonation_civix_civicrm_xmlMenu($files);
 }
 
 /**
@@ -64,7 +63,6 @@ function bbpriorityDonation_civicrm_install()
  */
 function bbpriorityDonation_civicrm_postInstall()
 {
-    _bbpriorityDonation_civix_civicrm_postInstall();
 }
 
 /**
@@ -89,7 +87,6 @@ function bbpriorityDonation_civicrm_uninstall()
         civicrm_api('PaymentProcessorType', 'delete', $params);
     }
 
-    _bbpriorityDonation_civix_civicrm_uninstall();
 }
 
 /**
@@ -109,7 +106,6 @@ function bbpriorityDonation_civicrm_enable()
  */
 function bbpriorityDonation_civicrm_disable()
 {
-    _bbpriorityDonation_civix_civicrm_disable();
 }
 
 /**
@@ -119,7 +115,7 @@ function bbpriorityDonation_civicrm_disable()
  */
 function bbpriorityDonation_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL)
 {
-    return _bbpriorityDonation_civix_civicrm_upgrade($op, $queue);
+    return;
 }
 
 /**
@@ -132,7 +128,6 @@ function bbpriorityDonation_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL)
  */
 function bbpriorityDonation_civicrm_managed(&$entities)
 {
-    _bbpriorityDonation_civix_civicrm_managed($entities);
 }
 
 /**
@@ -146,7 +141,6 @@ function bbpriorityDonation_civicrm_managed(&$entities)
  */
 function bbpriorityDonation_civicrm_caseTypes(&$caseTypes)
 {
-    _bbpriorityDonation_civix_civicrm_caseTypes($caseTypes);
 }
 
 /**
@@ -161,7 +155,6 @@ function bbpriorityDonation_civicrm_caseTypes(&$caseTypes)
  */
 function bbpriorityDonation_civicrm_angularModules(&$angularModules)
 {
-    _bbpriorityDonation_civix_civicrm_angularModules($angularModules);
 }
 
 /**
@@ -171,7 +164,6 @@ function bbpriorityDonation_civicrm_angularModules(&$angularModules)
  */
 function bbpriorityDonation_civicrm_alterSettingsFolders(&$metaDataFolders = NULL)
 {
-    _bbpriorityDonation_civix_civicrm_alterSettingsFolders($metaDataFolders);
 }
 
 // --- Functions below this ship commented out. Uncomment as required. ---
