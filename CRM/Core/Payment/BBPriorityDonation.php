@@ -195,12 +195,12 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         ));
 
         if ($lang == 'HE') {
-		$pelecard->setParameter("Language", 'he');
-	} else if ($lang == 'RU') {
-		$pelecard->setParameter("Language", 'ru');
-	} else {
-		$pelecard->setParameter("Language", 'en');
-	}
+            $pelecard->setParameter("Language", 'he');
+        } else if ($lang == 'RU') {
+            $pelecard->setParameter("Language", 'ru');
+        } else {
+            $pelecard->setParameter("Language", 'en');
+        }
 
         if ($nick_name == 'ben2') {
             if ($lang == 'HE') {

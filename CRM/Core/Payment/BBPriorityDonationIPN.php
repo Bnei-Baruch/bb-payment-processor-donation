@@ -340,7 +340,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
                 'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
 
             Civi::log('BBPDonation IPN')->debug("Pelecard Response is invalid");
-            return [true, $data];
+            return [false, $data];
         }
 
         $contribution->txrn_id = $valid;
