@@ -267,7 +267,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         $pelecard->setParameter("terminal", $this->_paymentProcessor["signature"]);
 
         $pelecard->setParameter("UserKey", $params['qfKey']);
-        $pelecard->setParameter("ParamX", 'civicrm-' . $params['contributionID']);
+        $pelecard->setParameter("ParamX", 'pre-' . $params['contributionID']);
 
         //    $sandBoxUrl = 'https://gateway20.pelecard.biz/sandbox/landingpage?authnum=123';
         $pelecard->setParameter("GoodUrl", $merchantUrl); // ReturnUrl should be used _AFTER_ payment confirmation
