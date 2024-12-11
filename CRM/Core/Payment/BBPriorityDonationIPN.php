@@ -199,7 +199,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
             $contribution = $this->getContribution($contributionID, $contactID);
 
             if ($input['PelecardStatusCode'] != self::BBP_RESPONSE_CODE_ACCEPTED) {
-                Civi::log('BBPCC IPN')->debug("BBPCC IPN Response: About to cancel contribution \n input: " . print_r($input, TRUE) . "\n ids: " . print_r($ids, TRUE));
+                Civi::log('BBPD IPN')->debug("BBPD IPN Response: About to cancel contribution \n input: " . print_r($input, TRUE) . "\n ids: " . print_r($ids, TRUE));
                 $contribution->contribution_status_id = $contributionStatuses['Cancelled'];
                 $contribution->cancel_date = 'now';
                 $contribution->cancel_reason = 'CC failure ' . $input['PelecardStatusCode'];
@@ -241,7 +241,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
 
         // update custom fields
         $token = $data['Token'] . '';
-        $cardtype = $data['CreditCardCompanyIssuer']  ? $data['CreditCardCompanyIssuer'] . '' : '';
+        $cardtype = $data['CreditCardCompanyIssuer'] ? $data['CreditCardCompanyIssuer'] . '' : '';
         $cardnum = $data['CreditCardNumber'] ? $data['CreditCardNumber'] . '' : '';
         $cardexp = $data['CreditCardExpDate'] ? $data['CreditCardExpDate'] . '' : '';
 
@@ -363,11 +363,11 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         $contribution = new CRM_Contribute_BAO_Contribution();
         $contribution->id = $contribution_id;
         if (!$contribution->find(TRUE)) {
-            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution_id, NULL, ['context' => "Could not find contribution record: {$this->contribution->id} in IPN request: "]);
+            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int)$contribution_id, NULL, ['context' => "Could not find contribution record: {$this->contribution->id} in IPN request: "]);
         }
-        if ((int) $contribution->contact_id !== $contactID) {
+        if ((int)$contribution->contact_id !== $contactID) {
             Civi::log("Contact ID in IPN not found but contact_id found in contribution.");
-	    throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution_id . ' and ' . $contactID, NULL, ['context' => "Could not find contribution record: {$contribution_id} in IPN request: "]);
+            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int)$contribution_id . ' and ' . $contactID, NULL, ['context' => "Could not find contribution record: {$contribution_id} in IPN request: "]);
         }
         return $contribution;
     }
