@@ -6,6 +6,8 @@
  * @author Gregory Shilin <gshilin@gmail.com>
  */
 
+use Drupal\Core\Language\LanguageInterface;
+
 require_once 'CRM/Core/Payment.php';
 require_once 'includes/PelecardDonationAPI.php';
 require_once 'BBPriorityDonationIPN.php';
@@ -79,9 +81,9 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
             exit();
         */
 
-        global $base_url;
-        global $language;
-        $lang = strtoupper($language->language);
+        $base_url = CRM_Utils_System::baseURL();
+        $uiLanguage = \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->getId();
+        $lang = strtoupper($uiLanguage);
 
         if ($component != 'contribute' && $component != 'event') {
             Civi::log()->error('bbprioritycc_payment_exception',
@@ -121,9 +123,10 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         $params['fee_amount'] = 1.50;
         $params['net_amount'] = $params['gross_amount'] - $params['fee_amount'];
 
-        if (array_key_exists('webform_redirect_success', $params)) {
-            $returnURL = $params['webform_redirect_success'];
-            $cancelURL = $params['webform_redirect_cancel'];
+        if (array_key_exists('successURL', $params)) {
+            // webform
+            $returnURL = $params['successURL'];
+            $cancelURL = $params['cancelURL'];
         } else {
             $url = ($component == 'event') ? 'civicrm/event/register' : 'civicrm/contribute/transact';
             $cancel = ($component == 'event') ? '_qf_Register_display' : '_qf_Main_display';
@@ -169,7 +172,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         }
 
         $pelecard = new PelecardDonationAPI;
-        $merchantUrl = $base_url . '/' . strtolower($lang) . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
+        $merchantUrl = $base_url . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
             . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
             . '&returnURL=' . $pelecard->base64_url_encode($returnURL);
 

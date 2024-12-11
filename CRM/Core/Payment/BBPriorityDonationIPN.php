@@ -269,7 +269,6 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
             'eventID' => self::retrieve('eventID', 'String', false),
             'participantID' => self::retrieve('participantID', 'String', false),
             'membershipID' => self::retrieve('membershipID', 'String', false),
-            'contributionPageID' => self::retrieve('contributionPageID', 'String', false),
             'relatedContactID' => self::retrieve('relatedContactID', 'String', false),
             'onBehalfDupeAlert' => self::retrieve('onBehalfDupeAlert', 'String', false),
             'returnURL' => self::retrieve('returnURL', 'String', false),
