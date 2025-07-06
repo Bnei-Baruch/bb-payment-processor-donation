@@ -7,6 +7,7 @@
  */
 
 use Drupal\Core\Language\LanguageInterface;
+use Civi\Api4\FinancialTrxn;
 
 require_once 'CRM/Core/Payment.php';
 require_once 'includes/PelecardDonationAPI.php';
@@ -137,7 +138,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
 
             $cancelUrlString = "$cancel=1&cancel=1&qfKey={$params['qfKey']}";
             if ($params['is_recur'] ?? false) {
-                $cancelUrlString .= "&isRecur=1&recurId={$params['contributionRecurID']}&contribId={$params['contributionID']}";
+                $cancelUrlString .= "&isRecur=1&recurId={$params['contributionRecurID']}&contribId={$contributionID}";
             }
 
             $cancelURL = CRM_Utils_System::url(
@@ -147,7 +148,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
             );
         }
 
-        $merchantUrlParams = "contactID={$params['contactID']}&contributionID={$params['contributionID']}";
+        $merchantUrlParams = "contactID={$params['contactID']}&contributionID={$contributionID}";
         if ($component == 'event') {
             $merchantUrlParams .= "&eventID={$params['eventID']}&participantID={$params['participantID']}";
         } else {
@@ -196,6 +197,22 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
             'id' => $contact_id,
             'account_relationship' => 1,
         ));
+
+        $financialAccountID = civicrm_api3('EntityFinancialAccount', 'getvalue', array('return' => "financial_account_id", 'entity_id' => $financialTypeID, 'account_relationship' => 1,));
+	$this->createFinancialTrxn($contributionID, $amount, $params['trxn_id'], $this->_paymentProcessor["id"] , $financialAccountID, $params["currencyID"] );
+
+        $currencyName = $params['custom_1706'] ?? $params['currencyID'];
+        if ($currencyName == "EUR") {
+            $currency = 978;
+        } elseif ($currencyName == "USD") {
+            $currency = 2;
+        } else { // ILS -- default
+            $currency = 1;
+        }
+	\Civi\Api4\Contribution::update()
+		->addWhere('id', '=', $contributionID)
+		->addValue('currency', $currencyName)
+		->execute();
 
         if ($lang == 'HE') {
             $pelecard->setParameter("Language", 'he');
@@ -256,13 +273,6 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         }
 
         $pelecard->setParameter("Total", $amount * 100);
-        if ($params["currencyID"] == "EUR") {
-            $currency = 978;
-        } elseif ($params["currencyID"] == "USD") {
-            $currency = 2;
-        } else { // ILS -- default
-            $currency = 1;
-        }
         $pelecard->setParameter("Currency", $currency);
 
         $pelecard->setParameter("user", $this->_paymentProcessor["user_name"]);
@@ -355,5 +365,22 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
      */
     public function _setParam(string $field, string $value) {
         $this->_params[$field] = $value;
+    }
+
+    // Record financial transaction
+    private function createFinancialTrxn($contributionID, $totalAmount, $trxn_id, $paymentProcessorID, $financialAccountID, $currency) {
+        $ftParams = [
+          'total_amount' => $totalAmount,
+          'contribution_id' => $contributionID,
+	  'entity_id' => $contributionID,
+          'trxn_id' => $trxn_id ?? $contributionID,
+          'payment_processor_id' => $paymentProcessorID,
+          'status_id:name' => 'Completed',
+	  'currency' => $currency,
+	  'to_financial_account_id' => $financialAccountID,
+        ];
+	FinancialTrxn::create(false)
+		->setValues($ftParams)
+		->execute();
     }
 }
