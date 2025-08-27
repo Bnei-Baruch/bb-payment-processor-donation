@@ -6,6 +6,7 @@ use Civi\Api4\Contact;
 class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
     const BBP_RESPONSE_CODE_ACCEPTED = '000';
     private $_bbpAPI;
+    private $errors;
 
     function __construct($inputData) {
         $this->_bbpAPI = new PelecardDonationAPI;
@@ -191,13 +192,29 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         parent::__construct();
     }
 
+    	protected function debugMessage($params) {
+			\Drupal::logger('payment_processor')->notice('@timestamp doPayment received: @params', [
+			    '@timestamp' => date('Y-m-d H:i:s'),
+			    '@params' => print_r($params, TRUE)
+			  ]);
+			$debugData = [
+				'timestamp' => date('Y-m-d H:i:s'),
+				'response' => $params,
+			];
+			file_put_contents('/sites/pay.kli.one/web/sites/default/files/civicrm/ConfigAndLog/refund_debug.log', 
+				json_encode($debugData, JSON_PRETTY_PRINT) . "\n", 
+				FILE_APPEND | LOCK_EX
+			); 
+
+	}
+
     function main(&$paymentProcessor, &$input, &$ids): void {
         try {
+		$this->debugMessage($input);
             $contributionStatuses = array_flip(CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id', 'validate'));
             $contributionID = $input['contributionID'];
             $contactID = self::retrieve('contactID', 'Integer');
             $contribution = $this->getContribution($contributionID, $contactID);
-
             if ($input['PelecardStatusCode'] != self::BBP_RESPONSE_CODE_ACCEPTED) {
                 Civi::log('BBPD IPN')->debug("BBPD IPN Response: About to cancel contribution \n input: " . print_r($input, TRUE) . "\n ids: " . print_r($ids, TRUE));
                 $contribution->contribution_status_id = $contributionStatuses['Cancelled'];
@@ -227,8 +244,8 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
             echo("bbpriorityDonation IPN success");
             $this->redirectSuccess($input);
         } catch (CRM_Core_Exception $e) {
-            Civi::log('BBPDonation IPN')->debug($e->getMessage());
-            echo 'Invalid or missing data: ' . $e->getMessage();
+            //Civi::log('BBPDonation IPN')->debug($e->getMessage());
+            //echo 'Invalid or missing data: ' . $e->getMessage();
         }
     }
 
@@ -295,7 +312,16 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
     }
 
     function redirectSuccess(&$input): void {
-        $returnURL = (new PelecardDonationAPI)->base64_url_decode($input['returnURL']);
+        $url = (new PelecardDonationAPI)->base64_url_decode($input['returnURL']);
+        $key = "success";
+        $value = "1";
+        $url = preg_replace('/(.*)(?|&)' . $key . '=[^&]+?(&)(.*)/i', '$1$2$4', $url . '&');
+        $url = substr($url, 0, -1);
+        if (strpos($url, '?') === false) {
+            $returnURL = ($url . '?' . $key . '=' . $value);
+        } else {
+            $returnURL = ($url . '&' . $key . '=' . $value);
+        }
 
         // Print the tpl to redirect to success
         $template = CRM_Core_Smarty::singleton();

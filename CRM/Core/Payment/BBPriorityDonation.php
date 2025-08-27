@@ -73,19 +73,14 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         }
     }
 
-    function doPayment(&$params, $component = 'contribute') {
-        /* DEBUG
+       /* DEBUG
             echo "<pre>";
             var_dump($this->_paymentProcessor);
             var_dump($params);
             echo "</pre>";
             exit();
-        */
-
-        $base_url = CRM_Utils_System::baseURL();
-        $uiLanguage = \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->getId();
-        $lang = strtoupper($uiLanguage);
-
+	*/
+    function doPayment(&$params, $component = 'contribute') {
         if ($component != 'contribute' && $component != 'event') {
             Civi::log()->error('bbprioritycc_payment_exception',
                 ['context' => [
@@ -95,10 +90,17 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         }
         $this->_component = $component;
 
+        $base_url = CRM_Utils_System::baseURL();
+        $base_url = rtrim($base_url, '/');
+        $uiLanguage = \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->getId();
+        $lang = strtoupper($uiLanguage);
+
+
         $statuses = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id', 'validate');
 
         $invoiceID = $this->_getParam('invoiceID');
         $contributionID = $params['contributionID'] ?? NULL;
+	$contactID = $params['contactID'];
         if ($this->checkDupe($invoiceID, $contributionID)) {
             throw new PaymentProcessorException('It appears that this transaction is a duplicate.  Have you already submitted the form once?  If so there may have been a connection problem.  Check your email for a receipt.  If you do not receive a receipt within 2 hours you can try your transaction again.  If you continue to have problems please contact the site administrator.', 9004);
         }
@@ -148,7 +150,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
             );
         }
 
-        $merchantUrlParams = "contactID={$params['contactID']}&contributionID={$contributionID}";
+        $merchantUrlParams = "contactID={$contactID}&contributionID={$contributionID}";
         if ($component == 'event') {
             $merchantUrlParams .= "&eventID={$params['eventID']}&participantID={$params['participantID']}";
         } else {
@@ -199,8 +201,6 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         ));
 
         $financialAccountID = civicrm_api3('EntityFinancialAccount', 'getvalue', array('return' => "financial_account_id", 'entity_id' => $financialTypeID, 'account_relationship' => 1,));
-	$this->createFinancialTrxn($contributionID, $amount, $params['trxn_id'], $this->_paymentProcessor["id"] , $financialAccountID, $params["currencyID"] );
-
         $currencyName = $params['custom_1706'] ?? $params['currencyID'];
         if ($currencyName == "EUR") {
             $currency = 978;
@@ -209,10 +209,11 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         } else { // ILS -- default
             $currency = 1;
         }
-	\Civi\Api4\Contribution::update()
+	\Civi\Api4\Contribution::update(false)
 		->addWhere('id', '=', $contributionID)
 		->addValue('currency', $currencyName)
 		->execute();
+	$this->createFinancialTrxn($contributionID, $amount, $params['trxn_id'], $this->_paymentProcessor["id"] , $financialAccountID, $params["currencyID"] );
 
         if ($lang == 'HE') {
             $pelecard->setParameter("Language", 'he');
@@ -230,31 +231,19 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
                 $pelecard->setParameter('TextOnConfirmationBox', 'אני מסכים עם תנאי השימוש');
                 $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-he.html');
             } elseif ($lang == 'RU') {
-                $pelecard->setParameter("TopText", 'Сумма пожертвования: ' . $amount . $params["currencyID"]);
+                $pelecard->setParameter("TopText", 'Постоянное платежное поручение: ' . $amount . ' ' . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© Бней Барух Каббала лаАм');
                 $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
                 $pelecard->setParameter('TextOnConfirmationBox', 'Я согласен с условиями обслуживания');
                 $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-ru.html');
             } else {
-                $pelecard->setParameter("TopText", 'Donation Amount: ' . $amount . $params["currencyID"]);
+                $pelecard->setParameter("TopText", 'Recurrent Contribution Amount: ' . $amount . ' ' . $params["currencyID"]);
                 $pelecard->setParameter("BottomText", '© Bnei Baruch Kabbalah laAm');
                 $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
                 $pelecard->setParameter('TextOnConfirmationBox', 'I agree with the terms of service');
                 $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-en.html');
             }
             $pelecard->setParameter("LogoUrl", "https://checkout.kabbalah.info/logo1.png");
-        } elseif ($nick_name == 'arvut2') {
-            if ($lang == 'HE') {
-                $pelecard->setParameter("TopText", 'סכום התרומה: ' . $amount . $params["currencyID"]);
-                $pelecard->setParameter("BottomText", '© תנועת הערבות לאיחוד העם');
-            } elseif ($lang == 'RU') {
-                $pelecard->setParameter("TopText", 'Сумма пожертвования: ' . $amount . $params["currencyID"]);
-                $pelecard->setParameter("BottomText", '© Общественное движение «Арвут»');
-            } else {
-                $pelecard->setParameter("TopText", 'Donation Amount: ' . $amount . $params["currencyID"]);
-                $pelecard->setParameter("BottomText", '© The Arvut Social Movement');
-            }
-            $pelecard->setParameter("LogoUrl", "https://checkout.arvut.org/arvut_logo.png");
         } elseif ($nick_name == 'meshp18') {
             $pelecard->setParameter("TopText", 'משפחה בחיבור');
             $pelecard->setParameter("BottomText", '© משפחה בחיבור');
@@ -280,7 +269,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         $pelecard->setParameter("terminal", $this->_paymentProcessor["signature"]);
 
         $pelecard->setParameter("UserKey", $params['qfKey']);
-        $pelecard->setParameter("ParamX", 'pre-' . $params['contributionID']);
+        $pelecard->setParameter("ParamX", 'civicrm-' . $params['contributionID']);
 
         //    $sandBoxUrl = 'https://gateway20.pelecard.biz/sandbox/landingpage?authnum=123';
         $pelecard->setParameter("GoodUrl", $merchantUrl); // ReturnUrl should be used _AFTER_ payment confirmation
@@ -334,7 +323,10 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
                 $found[] = $value;
             }
         });
-        return $found[0];
+	if (count($found) > 0) {
+		return $found[0];
+	}
+	return;
     }
 
     /**
