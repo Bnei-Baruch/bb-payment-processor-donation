@@ -212,7 +212,6 @@ class PelecardDonationAPI {
         } else {
             $firstpay = $data['FirstPaymentTotal'] / 100.00;
         }
-        $updatedat = urldecode($data['TransactionUpdateTime'] . '');
 
         $this->vars_pay = [];
         $this->setParameter("ConfirmationKey", $ConfirmationKey);
@@ -251,12 +250,11 @@ class PelecardDonationAPI {
             8 => array(http_build_query($data), 'String'),
             9 => array($amount, 'String'),
             10 => array($token, 'String'),
-            11 => array($approval, 'String'),
-            12 => array($updatedat, 'String'),
+	    11 => array($approval, 'String'),
         );
         CRM_Core_DAO::executeQuery(
-            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, approval, created_at, updated_at) 
-                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, %11, NOW(), %12)', $query_params);
+            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, token, approval, created_at) 
+                   VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, %10, %11, NOW())', $query_params);
 
         return [true, $data];
     }
