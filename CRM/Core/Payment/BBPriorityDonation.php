@@ -8,9 +8,12 @@
 
 use Drupal\Core\Language\LanguageInterface;
 use Civi\Api4\FinancialTrxn;
+use Civi\Api4\EntityFinancialAccount;
+use Civi\Api4\Contribution;
+use CRM\BBPelecard\API\PelecardDonation;
+use CRM\BBPelecard\Utils\ErrorCodes;
 
 require_once 'CRM/Core/Payment.php';
-require_once 'includes/PelecardDonationAPI.php';
 require_once 'BBPriorityDonationIPN.php';
 
 /**
@@ -19,7 +22,7 @@ require_once 'BBPriorityDonationIPN.php';
 class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
     protected $_mode = NULL;
 
-    protected $_params = array();
+    protected $_params = [];
 
     /**
      * Constructor.
@@ -41,7 +44,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
         $query = "SELECT MAX(trxn_id) AS trxn_id FROM civicrm_contribution WHERE trxn_id LIKE '{$mode}_%' LIMIT 1";
         $tid = CRM_Core_Dao::executeQuery($query);
         if (!$tid->fetch()) {
-            throw new CRM_Core_Exception('Could not find contribution max id');
+            throw new Exception('Could not find contribution max id');
         }
         $trxn_id = strval($tid->trxn_id);
         $trxn_id = str_replace("{$mode}_", '', $trxn_id);
@@ -174,7 +177,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
             }
         }
 
-        $pelecard = new PelecardDonationAPI;
+        $pelecard = new PelecardDonation();
         $merchantUrl = $base_url . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
             . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
             . '&returnURL=' . $pelecard->base64_url_encode($returnURL);

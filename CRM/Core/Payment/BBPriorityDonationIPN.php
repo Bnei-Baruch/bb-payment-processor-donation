@@ -2,14 +2,17 @@
 
 use Civi\Api4\Contribution;
 use Civi\Api4\Contact;
+use CRM\BBPelecard\API\PelecardDonation;
+use CRM\BBPelecard\Utils\ErrorCodes;
 
-class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
-    const BBP_RESPONSE_CODE_ACCEPTED = '000';
+class CRM_Core_Payment_BBPriorityDonationIPN {
+    // Response code moved to ErrorCodes::RESPONSE_CODE_ACCEPTED
     private $_bbpAPI;
     private $errors;
+    private array $_inputParameters = [];
 
     function __construct($inputData) {
-        $this->_bbpAPI = new PelecardDonationAPI;
+        $this->_bbpAPI = new PelecardDonation();
         $this->errors = [
             '000' => 'Permitted transaction.',
             '001' => 'The card is blocked, confiscate it.',
@@ -189,7 +192,10 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         ];
 
         $this->setInputParameters($inputData);
-        parent::__construct();
+    }
+
+    private function setInputParameters($inputData) {
+        $this->_inputParameters = $inputData;
     }
 
     	protected function debugMessage($params) {
@@ -215,19 +221,19 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
             $contributionID = $input['contributionID'];
             $contactID = self::retrieve('contactID', 'Integer');
             $contribution = $this->getContribution($contributionID, $contactID);
-            if ($input['PelecardStatusCode'] != self::BBP_RESPONSE_CODE_ACCEPTED) {
+            if ($input['PelecardStatusCode'] != ErrorCodes::RESPONSE_CODE_ACCEPTED) {
                 Civi::log('BBPD IPN')->debug("BBPD IPN Response: About to cancel contribution \n input: " . print_r($input, TRUE) . "\n ids: " . print_r($ids, TRUE));
-                $contribution->contribution_status_id = $contributionStatuses['Cancelled'];
-                $contribution->cancel_date = 'now';
-                $contribution->cancel_reason = 'CC failure ' . $input['PelecardStatusCode'];
-                $contribution->save(false);
+                Contribution::update(false)
+                    ->addWhere('id', '=', $contribution['id'])
+                    ->addValue('contribution_status_id', $contributionStatuses['Cancelled'])
+                    ->addValue('cancel_date', date('Y-m-d H:i:s'))
+                    ->addValue('cancel_reason', 'CC failure ' . $input['PelecardStatusCode'])
+                    ->execute();
                 echo 'Contribution aborted due to invalid code received from Pelecard: ' . $input['PelecardStatusCode'];
                 return;
             }
 
-            $statusID = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_Contribution',
-                $contribution->id, 'contribution_status_id'
-            );
+            $statusID = $contribution['contribution_status_id'];
             if ($statusID === $contributionStatuses['Completed']) {
                 Civi::log('BBPCC IPN')->debug('returning since contribution has already been handled');
                 return;
@@ -243,16 +249,16 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
 
             echo("bbpriorityDonation IPN success");
             $this->redirectSuccess($input);
-        } catch (CRM_Core_Exception $e) {
-            //Civi::log('BBPDonation IPN')->debug($e->getMessage());
-            //echo 'Invalid or missing data: ' . $e->getMessage();
+        } catch (Exception $e) {
+            Civi::log('BBPDonation IPN')->debug($e->getMessage());
+            echo 'Invalid or missing data: ' . $e->getMessage();
         }
     }
 
     function updateContribution($contribution, $contactID, $data, $status) {
         // mark payment status
         Contribution::update(false)
-            ->addWhere('id', '=', $contribution->id)
+            ->addWhere('id', '=', $contribution['id'])
             ->addValue('contribution_status_id', $status)
             ->execute();
 
@@ -263,7 +269,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         $cardexp = $data['CreditCardExpDate'] ? $data['CreditCardExpDate'] . '' : '';
 
         Contribution::update(false)
-            ->addWhere('id', '=', $contribution->id)
+            ->addWhere('id', '=', $contribution['id'])
             ->addValue('Payment_details.token', $token)
             ->addValue('Payment_details.cardtype', $cardtype)
             ->addValue('Payment_details.cardnum', $cardnum)
@@ -312,7 +318,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
     }
 
     function redirectSuccess(&$input): void {
-        $url = (new PelecardDonationAPI)->base64_url_decode($input['returnURL']);
+        $url = (new PelecardDonation())->base64_url_decode($input['returnURL']);
         $key = "success";
         $value = "1";
         $url = preg_replace('/(.*)(?|&)' . $key . '=[^&]+?(&)(.*)/i', '$1$2$4', $url . '&');
@@ -336,7 +342,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
         }
 
         $approval = 0;
-        $input['amount'] = $contribution->total_amount;
+        $input['amount'] = $contribution['total_amount'];
         list($valid, $data) = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
         if (!$valid) {
             $query_params = array(
@@ -379,21 +385,30 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends CRM_Core_Payment_BaseIPN {
             FALSE
         );
         if ($abort && $value === NULL) {
-            throw new CRM_Core_Exception("Could not find an entry for $name");
+            throw new Exception("Could not find an entry for $name");
         }
         return $value;
     }
 
-    private function getContribution($contribution_id, $contactID) {
-        $contribution = new CRM_Contribute_BAO_Contribution();
-        $contribution->id = $contribution_id;
-        if (!$contribution->find(TRUE)) {
-            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int)$contribution_id, NULL, ['context' => "Could not find contribution record: {$this->contribution->id} in IPN request: "]);
+    private function getContribution($contribution_id, $contactID): array {
+        try {
+            $contribution = Contribution::get(false)
+                ->addWhere('id', '=', $contribution_id)
+                ->execute()
+                ->first();
+
+            if (!$contribution) {
+                throw new Exception('Failure: Could not find contribution record for ' . (int)$contribution_id);
+            }
+
+            if ((int)$contribution['contact_id'] !== $contactID) {
+                Civi::log("Contact ID in IPN not found but contact_id found in contribution.");
+                throw new Exception('Failure: Could not find contribution record for ' . (int)$contribution_id . ' and ' . $contactID);
+            }
+
+            return $contribution;
+        } catch (Exception $e) {
+            throw new Exception('Failure: Could not find contribution record for ' . (int)$contribution_id);
         }
-        if ((int)$contribution->contact_id !== $contactID) {
-            Civi::log("Contact ID in IPN not found but contact_id found in contribution.");
-            throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int)$contribution_id . ' and ' . $contactID, NULL, ['context' => "Could not find contribution record: {$contribution_id} in IPN request: "]);
-        }
-        return $contribution;
     }
 }
