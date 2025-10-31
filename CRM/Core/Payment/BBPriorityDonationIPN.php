@@ -343,13 +343,14 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
 
         $approval = 0;
         $input['amount'] = $contribution['total_amount'];
-        list($valid, $data) = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
+        list($valid, $data, $errorCode) = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, false, $approval);
         if (!$valid) {
             $query_params = array(
-                1 => array($contribution->id, 'String')
+                1 => array($errorCode > 0 ? $errorCode : -1, 'String'),
+                2 => array($contribution->id, 'String')
             );
             CRM_Core_DAO::executeQuery(
-                'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
+                'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
 
             Civi::log('BBPDonation IPN')->debug("Pelecard Response is invalid");
             return [false, null];
@@ -362,20 +363,47 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
             return [false, null];
         }
 
-        list($valid, $data) = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, true, $approval);
+        list($valid, $data, $errorCode) = $this->_bbpAPI->validateResponse($paymentProcessor, $input, $contribution, $this->errors, true, $approval);
         if (!$valid) {
             $query_params = array(
-                1 => array($contribution->id, 'String')
+                1 => array($errorCode > 0 ? $errorCode : -1, 'String'),
+                2 => array($contribution->id, 'String')
             );
             CRM_Core_DAO::executeQuery(
-                'UPDATE civicrm_contribution SET invoice_number = -1 WHERE id = %1', $query_params);
+                'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
 
             Civi::log('BBPDonation IPN')->debug("Pelecard Response is invalid");
             return [false, $data];
         }
 
-        $contribution->txrn_id = $valid;
+        // Store transaction data in civicrm_bb_payment_responses
+        $this->storePaymentResponse($contribution->id, $data);
+
+        $contribution->trxn_id = $data['PelecardTransactionId'];
         return [true, $data];
+    }
+
+    /**
+     * Store payment response data in database
+     */
+    private function storePaymentResponse($contributionId, $data): void {
+        $query_params = [
+            1 => [$data['PelecardTransactionId'], 'String'],
+            2 => [$contributionId, 'String'],
+            3 => [$data['CreditCardCompanyIssuer'] ?? '', 'String'],
+            4 => [$data['CreditCardNumber'] ?? '', 'String'],
+            5 => [$data['CreditCardExpDate'] ?? '', 'String'],
+            6 => [$data['FirstPaymentTotal'] ?? 0, 'String'],
+            7 => [$data['TotalPayments'] ?? 1, 'String'],
+            8 => [is_array($data['FullResponse']) ? http_build_query($data['FullResponse']) : $data['FullResponse'], 'String'],
+            9 => [$data['DebitTotal'] ?? 0, 'String'],
+        ];
+
+        CRM_Core_DAO::executeQuery(
+            'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, is_regular, created_at)
+             VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, 1, NOW())',
+            $query_params
+        );
     }
 
     public function retrieve($name, $type, $abort = TRUE, $default = NULL) {
