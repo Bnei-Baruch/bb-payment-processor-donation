@@ -103,6 +103,20 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
   }
 
   function getInput(&$input, &$ids) {
+    // Debug: Log all incoming data
+    $debugData = [
+      'timestamp' => date('Y-m-d H:i:s'),
+      'GET' => $_GET,
+      'POST' => $_POST,
+      'REQUEST' => $_REQUEST,
+      'inputParameters' => $this->_inputParameters,
+    ];
+    file_put_contents('/sites/pay.kli.one/web/sites/default/files/civicrm/ConfigAndLog/ipn_input_debug.log',
+      json_encode($debugData, JSON_PRETTY_PRINT) . "\n",
+      FILE_APPEND | LOCK_EX
+    );
+    \Civi::log('BBPDonation IPN')->debug('getInput raw data: ' . print_r($debugData, TRUE));
+
     $input = array(
       // GET Parameters
       'module' => self::retrieve('md', 'String'),
