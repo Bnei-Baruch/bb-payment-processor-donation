@@ -177,6 +177,9 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
       return [false, null];
     }
 
+    // Add token to input for firstCharge
+    $input['Token'] = $data['Token'] ?? '';
+
     // Charge donor for the first time
     if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $approval)) {
       Civi::log('BBPDonation IPN')->debug("Unable to Charge the First Payment");
