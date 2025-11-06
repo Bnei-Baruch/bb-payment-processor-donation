@@ -10,11 +10,10 @@ use Drupal\Core\Language\LanguageInterface;
 use Civi\Api4\FinancialTrxn;
 use Civi\Api4\EntityFinancialAccount;
 use Civi\Api4\Contribution;
+use Civi\Api4\FinancialAccount;
+use Civi\Api4\Contact;
 use CRM\BBPelecard\API\PelecardDonation;
 use CRM\BBPelecard\Utils\ErrorCodes;
-
-require_once 'CRM/Core/Payment.php';
-require_once 'BBPriorityDonationIPN.php';
 
 /**
  * BBPriorityDonation payment processor
@@ -186,24 +185,30 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
     if (empty($financialTypeID)) {
       $financialTypeID = self::array_column_recursive_first($params, "financial_type_id");
     }
-    $financial_account_id = civicrm_api3('EntityFinancialAccount', 'getvalue', array(
-      'return' => "financial_account_id",
-      'entity_id' => $financialTypeID,
-      'account_relationship' => 1,
-    ));
 
-    $contact_id = civicrm_api3('FinancialAccount', 'getvalue', array(
-      'return' => "contact_id",
-      'id' => $financial_account_id,
-      'account_relationship' => 1,
-    ));
-    $nick_name = civicrm_api3('Contact', 'getvalue', array(
-      'return' => "nick_name",
-      'id' => $contact_id,
-      'account_relationship' => 1,
-    ));
+    $result = EntityFinancialAccount::get(false)
+      ->addSelect('financial_account_id')
+      ->addWhere('entity_id', '=', $financialTypeID)
+      ->addWhere('account_relationship', '=', 1)
+      ->execute()
+      ->first();
+    $financial_account_id = $result['financial_account_id'];
 
-    $financialAccountID = civicrm_api3('EntityFinancialAccount', 'getvalue', array('return' => "financial_account_id", 'entity_id' => $financialTypeID, 'account_relationship' => 1,));
+    $result = FinancialAccount::get(false)
+      ->addSelect('contact_id')
+      ->addWhere('id', '=', $financial_account_id)
+      ->execute()
+      ->first();
+    $contact_id = $result['contact_id'];
+
+    $result = Contact::get(false)
+      ->addSelect('nick_name')
+      ->addWhere('id', '=', $contact_id)
+      ->execute()
+      ->first();
+    $nick_name = $result['nick_name'];
+
+    $financialAccountID = $financial_account_id;
     $currencyName = $params['custom_1706'] ?? $params['currencyID'];
     if ($currencyName == "EUR") {
       $currency = 978;
