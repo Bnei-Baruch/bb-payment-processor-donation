@@ -19,25 +19,8 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
     $this->_inputParameters = $inputData;
   }
 
-  protected function debugMessage($params) {
-    \Drupal::logger('payment_processor')->notice('@timestamp doPayment received: @params', [
-      '@timestamp' => date('Y-m-d H:i:s'),
-      '@params' => print_r($params, TRUE)
-    ]);
-    $debugData = [
-      'timestamp' => date('Y-m-d H:i:s'),
-      'response' => $params,
-    ];
-    file_put_contents('/sites/pay.kli.one/web/sites/default/files/civicrm/ConfigAndLog/refund_debug.log',
-      json_encode($debugData, JSON_PRETTY_PRINT) . "\n",
-      FILE_APPEND | LOCK_EX
-    );
-
-  }
-
   function main(&$paymentProcessor, &$input, &$ids): void {
     try {
-      $this->debugMessage($input);
       $contributionStatuses = array_flip(CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id', 'validate'));
       $contributionID = $input['contributionID'];
       $contactID = self::retrieve('contactID', 'Integer');
@@ -103,20 +86,6 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
   }
 
   function getInput(&$input, &$ids) {
-    // Debug: Log all incoming data
-    $debugData = [
-      'timestamp' => date('Y-m-d H:i:s'),
-      'GET' => $_GET,
-      'POST' => $_POST,
-      'REQUEST' => $_REQUEST,
-      'inputParameters' => $this->_inputParameters,
-    ];
-    file_put_contents('/sites/pay.kli.one/web/sites/default/files/civicrm/ConfigAndLog/ipn_input_debug.log',
-      json_encode($debugData, JSON_PRETTY_PRINT) . "\n",
-      FILE_APPEND | LOCK_EX
-    );
-    \Civi::log('BBPDonation IPN')->debug('getInput raw data: ' . print_r($debugData, TRUE));
-
     $input = array(
       // GET Parameters
       'module' => self::retrieve('md', 'String'),
@@ -205,7 +174,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
     if (!$valid) {
       $query_params = array(
         1 => array($errorCode > 0 ? $errorCode : -1, 'String'),
-        2 => array($contribution->id, 'String')
+        2 => array($contribution['id'], 'String')
       );
       CRM_Core_DAO::executeQuery(
         'UPDATE civicrm_contribution SET invoice_number = %1, contribution_status_id = 4 WHERE id = %2', $query_params);
@@ -215,9 +184,9 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
     }
 
     // Store transaction data in civicrm_bb_payment_responses
-    $this->storePaymentResponse($contribution->id, $data);
+    $this->storePaymentResponse($contribution['id'], $data);
 
-    $contribution->trxn_id = $data['PelecardTransactionId'];
+    $contribution['trxn_id'] = $data['PelecardTransactionId'];
     return [true, $data];
   }
 
