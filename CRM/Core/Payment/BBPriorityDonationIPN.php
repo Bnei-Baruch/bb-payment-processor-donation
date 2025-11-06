@@ -119,7 +119,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
       // POST Parameters
       'PelecardTransactionId' => self::retrieve('PelecardTransactionId', 'String'),
       'PelecardStatusCode' => self::retrieve('PelecardStatusCode', 'String'),
-      'Token' => self::retrieve('Token', 'String'),
+      'Token' => self::retrieve('Token', 'String', false),
       'ConfirmationKey' => self::retrieve('ConfirmationKey', 'String'),
       'UserKey' => self::retrieve('UserKey', 'String'),
     );
