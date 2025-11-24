@@ -204,11 +204,11 @@ class CRM_Core_Payment_BBPriorityDonationIPN {
       7 => [$data['TotalPayments'] ?? 1, 'String'],
       8 => [is_array($data['FullResponse']) ? http_build_query($data['FullResponse']) : $data['FullResponse'], 'String'],
       9 => [$data['DebitTotal'] ?? 0, 'String'],
+      10 => [$data['Token'] ?? '', 'String'],
     ];
-
     CRM_Core_DAO::executeQuery(
-      'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, is_regular, created_at)
-             VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, 1, NOW())',
+      'INSERT INTO civicrm_bb_payment_responses(trxn_id, cid, cardtype, cardnum, cardexp, firstpay, installments, response, amount, is_regular, token, created_at)
+             VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9, 0, %10, NOW())',
       $query_params
     );
   }

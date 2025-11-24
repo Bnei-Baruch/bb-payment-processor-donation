@@ -265,7 +265,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
     $pelecard->setParameter("MinPayments", 1);
     $installments = 1;
     $min_amount = 0;
-    if ($params["amount"] >= (int)$min_amount) {
+    if ($params["amount"] >= $min_amount) {
       $pelecard->setParameter("MaxPayments", $installments);
     }
 
