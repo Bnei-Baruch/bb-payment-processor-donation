@@ -12,17 +12,14 @@ use Civi\Api4\EntityFinancialAccount;
 use Civi\Api4\Contribution;
 use Civi\Api4\FinancialAccount;
 use Civi\Api4\Contact;
-use CRM\BBPelecard\API\PelecardDonation;
+use CRM\BBPelecard\API\Pelecard;
 use CRM\BBPelecard\Utils\ErrorCodes;
+use CRM\BBPelecard\Payment\BBPriorityBaseProcessor;
 
 /**
  * BBPriorityDonation payment processor
  */
-class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
-  protected $_mode = NULL;
-
-  protected $_params = [];
-
+class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
   /**
    * Constructor.
    *
@@ -37,19 +34,6 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
     $this->_paymentProcessor = $paymentProcessor;
 
     $this->_setParam('processorName', 'BB Payment Donation');
-  }
-
-  public function setTrxnId(string $mode): string {
-    $query = "SELECT MAX(trxn_id) AS trxn_id FROM civicrm_contribution WHERE trxn_id LIKE '{$mode}_%' LIMIT 1";
-    $tid = CRM_Core_Dao::executeQuery($query);
-    if (!$tid->fetch()) {
-      throw new Exception('Could not find contribution max id');
-    }
-    $trxn_id = strval($tid->trxn_id);
-    $trxn_id = str_replace("{$mode}_", '', $trxn_id);
-    $trxn_id = intval($trxn_id) + 1;
-    $uniqid = uniqid();
-    return "{$mode}_{$trxn_id}_{$uniqid}";
   }
 
   /**
@@ -176,7 +160,7 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
       }
     }
 
-    $pelecard = new PelecardDonation();
+    $pelecard = new Pelecard(Pelecard::TYPE_DONATION);
     $merchantUrl = $base_url . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
       . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
       . '&returnURL=' . $pelecard->base64_url_encode($returnURL);
@@ -307,80 +291,4 @@ class CRM_Core_Payment_BBPriorityDonation extends CRM_Core_Payment {
     $ipnClass->main($this->_paymentProcessor, $input, $ids);
   }
 
-  /* Return dashed field (like email-4) from array */
-  function getField($array, $field) {
-    if (array_key_exists($field, $array)) {
-      return $array[$field];
-    }
-
-    $keys = array_keys($array);
-    $pattern = "/^" . $field . "/";
-    $result = preg_grep($pattern, $keys);
-    if (empty($result)) {
-      return '';
-    } else {
-      return $array[array_values($result)[0]];
-    }
-  }
-
-  /* Find first occurrence of needle somewhere in haystack (on all levels) */
-  static function array_column_recursive_first(array $haystack, $needle) {
-    $found = [];
-    array_walk_recursive($haystack, function ($value, $key) use (&$found, $needle) {
-      if (gettype($key) == 'string' && $key == $needle) {
-        $found[] = $value;
-      }
-    });
-    if (count($found) > 0) {
-      return $found[0];
-    }
-    return;
-  }
-
-  /**
-   * Get the value of a field if set.
-   *
-   * @param string $field
-   *   The field.
-   *
-   * @param bool $xmlSafe
-   * @return mixed
-   *   value of the field, or empty string if the field is not set
-   */
-  public function _getParam(string $field, bool $xmlSafe = FALSE): string {
-    $value = $this->_params[$field] ?? '';
-    if ($xmlSafe) {
-      $value = str_replace(['&', '"', "'", '<', '>'], '', $value);
-    }
-    return $value;
-  }
-
-  /**
-   * Set a field to the specified value.  Value must be a scalar (int,
-   * float, string, or boolean)
-   *
-   * @param string $field
-   * @param string $value
-   *
-   */
-  public function _setParam(string $field, string $value) {
-    $this->_params[$field] = $value;
-  }
-
-  // Record financial transaction
-  private function createFinancialTrxn($contributionID, $totalAmount, $trxn_id, $paymentProcessorID, $financialAccountID, $currency) {
-    $ftParams = [
-      'total_amount' => $totalAmount,
-      'contribution_id' => $contributionID,
-      'entity_id' => $contributionID,
-      'trxn_id' => $trxn_id ?? $contributionID,
-      'payment_processor_id' => $paymentProcessorID,
-      'status_id:name' => 'Completed',
-      'currency' => $currency,
-      'to_financial_account_id' => $financialAccountID,
-    ];
-    FinancialTrxn::create(false)
-      ->setValues($ftParams)
-      ->execute();
-  }
 }
