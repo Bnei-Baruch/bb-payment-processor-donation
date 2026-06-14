@@ -18,7 +18,7 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends BBPriorityBaseIPN {
     return 'BBPDonation IPN';
   }
 
-  function validateResult(&$paymentProcessor, &$input, &$contribution) {
+  function validateResult(&$paymentProcessor, &$input, &$contribution): array {
     if ($input['UserKey'] != $input['qfKey']) {
       Civi::log('BBPDonation IPN')->debug("Pelecard Response param UserKey is invalid");
       return [false, null];
