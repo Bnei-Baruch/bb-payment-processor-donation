@@ -275,6 +275,9 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
     if ($error > 0) {
       return FALSE;
     }
+    if (!empty($result[2])) {
+      $pelecard->storeConfirmationKey((int)$contributionID, $result[2], (float)$amount);
+    }
     $url = $result[1];
 
     // Print the tpl to redirect to Pelecard
