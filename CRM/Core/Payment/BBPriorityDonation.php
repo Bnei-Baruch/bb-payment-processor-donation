@@ -161,11 +161,8 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
     }
 
     $pelecard = new Pelecard(Pelecard::TYPE_DONATION, (bool)($this->_paymentProcessor['is_test'] ?? false));
-    $merchantUrl = $base_url . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
-      . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams;
-    $goodUrl = strpos($returnURL, '?') !== false
-      ? $returnURL . '&contribution_id=' . $params['contributionID']
-      : $returnURL . '?contribution_id=' . $params['contributionID'];
+    $merchantUrl = $this->buildMerchantUrl($component, $params, $merchantUrlParams);
+    $goodUrl     = $this->buildGoodUrl($returnURL, (int)$params['contributionID']);
 
     $financialTypeID = self::array_column_recursive_first($params, "financialTypeID");
     if (empty($financialTypeID)) {
@@ -265,20 +262,10 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
     $pelecard->setParameter("UserKey", $params['qfKey']);
     $pelecard->setParameter("ParamX", 'cv-' . $params['contributionID']);
 
-    $pelecard->setParameter("ServerSideGoodFeedbackURL", $merchantUrl);
-    $pelecard->setParameter("GoodUrl", $goodUrl);
-    $pelecard->setParameter("ErrorUrl", $merchantUrl);
-    $pelecard->setParameter("CancelUrl", $cancelURL);
-
-    $result = $pelecard->getRedirectUrl();
-    $error = $result[0];
-    if ($error > 0) {
+    $url = $this->applyUrlsAndLaunch($pelecard, $merchantUrl, $goodUrl, $cancelURL, (int)$contributionID, (float)$amount);
+    if ($url === null) {
       return FALSE;
     }
-    if (!empty($result[2])) {
-      $pelecard->storeConfirmationKey((int)$contributionID, $result[2], (float)$amount);
-    }
-    $url = $result[1];
 
     // Print the tpl to redirect to Pelecard
     $template = CRM_Core_Smarty::singleton();
