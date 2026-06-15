@@ -160,7 +160,7 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
       }
     }
 
-    $pelecard = new Pelecard(Pelecard::TYPE_DONATION);
+    $pelecard = new Pelecard(Pelecard::TYPE_DONATION, (bool)($this->_paymentProcessor['is_test'] ?? false));
     $merchantUrl = $base_url . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
       . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
       . '&returnURL=' . $pelecard->base64_url_encode($returnURL);
@@ -263,7 +263,6 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
     $pelecard->setParameter("UserKey", $params['qfKey']);
     $pelecard->setParameter("ParamX", 'civicrm-' . $params['contributionID']);
 
-    //    $sandBoxUrl = 'https://gateway20.pelecard.biz/sandbox/landingpage?authnum=123';
     $pelecard->setParameter("GoodUrl", $merchantUrl); // ReturnUrl should be used _AFTER_ payment confirmation
     $pelecard->setParameter("ErrorUrl", $merchantUrl);
     $pelecard->setParameter("CancelUrl", $cancelURL);
