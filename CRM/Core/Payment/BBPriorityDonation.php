@@ -263,7 +263,7 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
     $pelecard->setParameter("terminal", $this->_paymentProcessor["signature"]);
 
     $pelecard->setParameter("UserKey", $params['qfKey']);
-    $pelecard->setParameter("ParamX", 'civicrm-' . $params['contributionID']);
+    $pelecard->setParameter("ParamX", 'cv-' . $params['contributionID']);
 
     $pelecard->setParameter("ServerSideGoodFeedbackURL", $merchantUrl);
     $pelecard->setParameter("GoodUrl", $goodUrl);
