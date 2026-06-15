@@ -162,8 +162,10 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
 
     $pelecard = new Pelecard(Pelecard::TYPE_DONATION, (bool)($this->_paymentProcessor['is_test'] ?? false));
     $merchantUrl = $base_url . '/civicrm/payment/ipn?processor_id=' . $this->_paymentProcessor["id"] . '&mode=' . $this->_mode
-      . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams
-      . '&returnURL=' . $pelecard->base64_url_encode($returnURL);
+      . '&md=' . $component . '&qfKey=' . $params["qfKey"] . '&' . $merchantUrlParams;
+    $goodUrl = strpos($returnURL, '?') !== false
+      ? $returnURL . '&contribution_id=' . $params['contributionID']
+      : $returnURL . '?contribution_id=' . $params['contributionID'];
 
     $financialTypeID = self::array_column_recursive_first($params, "financialTypeID");
     if (empty($financialTypeID)) {
@@ -263,7 +265,8 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
     $pelecard->setParameter("UserKey", $params['qfKey']);
     $pelecard->setParameter("ParamX", 'civicrm-' . $params['contributionID']);
 
-    $pelecard->setParameter("GoodUrl", $merchantUrl); // ReturnUrl should be used _AFTER_ payment confirmation
+    $pelecard->setParameter("ServerSideGoodFeedbackURL", $merchantUrl);
+    $pelecard->setParameter("GoodUrl", $goodUrl);
     $pelecard->setParameter("ErrorUrl", $merchantUrl);
     $pelecard->setParameter("CancelUrl", $cancelURL);
 
