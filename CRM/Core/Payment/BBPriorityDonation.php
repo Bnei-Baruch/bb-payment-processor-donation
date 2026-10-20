@@ -204,7 +204,7 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
       ->addWhere('id', '=', $contributionID)
       ->addValue('currency', $currencyName)
       ->execute();
-    $this->createFinancialTrxn($contributionID, $amount, $params['trxn_id'], $this->_paymentProcessor["id"], $financialAccountID, $params["currencyID"]);
+    $this->createFinancialTrxn($contributionID, $amount, $params['trxn_id'], $this->_paymentProcessor["id"], $financialAccountID, $currencyName);
 
     if ($lang == 'HE') {
       $pelecard->setParameter("Language", 'he');
