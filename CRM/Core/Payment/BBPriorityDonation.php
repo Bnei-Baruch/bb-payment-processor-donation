@@ -216,19 +216,19 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
 
     if ($nick_name == 'ben2') {
       if ($lang == 'HE') {
-        $pelecard->setParameter("TopText", 'סכום לתשלום בהוראת קבע: ' . $amount . $params["currencyID"]);
+        $pelecard->setParameter("TopText", 'סכום לתשלום בהוראת קבע: ' . $amount . ' ' . $currencyName);
         $pelecard->setParameter("BottomText", '© בני ברוך קבלה לעם');
         $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
         $pelecard->setParameter('TextOnConfirmationBox', 'אני מסכים עם תנאי השימוש');
         $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-he.html');
       } elseif ($lang == 'RU') {
-        $pelecard->setParameter("TopText", 'Постоянное платежное поручение: ' . $amount . ' ' . $params["currencyID"]);
+        $pelecard->setParameter("TopText", 'Постоянное платежное поручение: ' . $amount . ' ' . $currencyName);
         $pelecard->setParameter("BottomText", '© Бней Барух Каббала лаАм');
         $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
         $pelecard->setParameter('TextOnConfirmationBox', 'Я согласен с условиями обслуживания');
         $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-ru.html');
       } else {
-        $pelecard->setParameter("TopText", 'Recurrent Contribution Amount: ' . $amount . ' ' . $params["currencyID"]);
+        $pelecard->setParameter("TopText", 'Recurrent Contribution Amount: ' . $amount . ' ' . $currencyName);
         $pelecard->setParameter("BottomText", '© Bnei Baruch Kabbalah laAm');
         $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
         $pelecard->setParameter('TextOnConfirmationBox', 'I agree with the terms of service');
