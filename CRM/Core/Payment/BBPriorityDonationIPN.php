@@ -41,7 +41,11 @@ class CRM_Core_Payment_BBPriorityDonationIPN extends BBPriorityBaseIPN {
 
     $input['Token'] = $data['Token'] ?? '';
 
-    if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $approval)) {
+    // Pass the J5's 3D Secure result (Eci/Cavv/XID) on to the J4. FullResponse
+    // is the decoded GetTransaction ResultData; guard the type so an
+    // unexpected shape skips the 3DS fields instead of a TypeError.
+    $j5Result = is_array($data['FullResponse'] ?? null) ? $data['FullResponse'] : [];
+    if (!$this->_bbpAPI->firstCharge($paymentProcessor, $input, $contribution, $approval, $j5Result)) {
       Civi::log('BBPDonation IPN')->debug("Unable to Charge the First Payment");
       echo("<p>Unable to Charge the First Payment</p>");
       return [false, null];

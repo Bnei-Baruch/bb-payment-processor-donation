@@ -235,14 +235,13 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
         $pelecard->setParameter('ConfirmationLink', 'https://checkout.kabbalah.info/legacy-statement-crm-en.html');
       }
       $pelecard->setParameter("LogoUrl", "https://checkout.kabbalah.info/logo1.png");
-    } elseif ($nick_name == 'meshp18') {
-      $pelecard->setParameter("TopText", 'משפחה בחיבור');
-      $pelecard->setParameter("BottomText", '© משפחה בחיבור');
-      $pelecard->setParameter('ShowConfirmationCheckbox', 'True');
-      $pelecard->setParameter('TextOnConfirmationBox', 'אני מסכים עם תנאי השימוש');
-      $pelecard->setParameter("Language", 'HE');
-      $pelecard->setParameter('ConfirmationLink', 'https://www.1family.co.il/privacy-policy/');
-      $pelecard->setParameter("LogoUrl", "https://www.1family.co.il/wp-content/uploads/2019/06/cropped-Screen-Shot-2019-06-16-at-00.12.07-140x82.png");
+    }
+
+    // Google Pay and Apple Pay buttons on Pelecard's hosted page; same as the
+    // CC processor (see BBPriorityCC.php for the details).
+    if ($nick_name == 'ben2') {
+      $pelecard->setParameter('GooglePay', ['Enable'  => 'True', 'MerchantName' => 'Bnei Baruch Kabbalah laAm']);
+      $pelecard->setParameter('ApplePay',  ['Enabled' => 'True', 'Label'        => 'Bnei Baruch Kabbalah laAm']);
     }
 
     $pelecard->setParameter("MinPayments", 1);
