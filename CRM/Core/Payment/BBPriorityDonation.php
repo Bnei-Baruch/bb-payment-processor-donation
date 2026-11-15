@@ -237,12 +237,11 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
       $pelecard->setParameter("LogoUrl", "https://checkout.kabbalah.info/logo1.png");
     }
 
-    // Google Pay and Apple Pay buttons on Pelecard's hosted page; same as the
-    // CC processor (see BBPriorityCC.php for the details).
-    if ($nick_name == 'ben2') {
-      $pelecard->setParameter('GooglePay', ['Enable'  => 'True', 'MerchantName' => 'Bnei Baruch Kabbalah laAm']);
-      $pelecard->setParameter('ApplePay',  ['Enabled' => 'True', 'Label'        => 'Bnei Baruch Kabbalah laAm']);
-    }
+    // Google Pay / Apple Pay are not sent: on 2026-11-15 Pelecard turned them
+    // off on the terminal, and /init then refuses the whole request (ErrCode
+    // 999 "GooglePay / ApplePay not enable call support"), which put payers on
+    // the thank-you page without a payment. Revert this commit to bring them
+    // back once Pelecard re-enables them.
 
     $pelecard->setParameter("MinPayments", 1);
     $installments = 1;
