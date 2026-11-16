@@ -12,6 +12,7 @@ use Civi\Api4\EntityFinancialAccount;
 use Civi\Api4\Contribution;
 use Civi\Api4\FinancialAccount;
 use Civi\Api4\Contact;
+use Civi\Payment\Exception\PaymentProcessorException;
 use CRM\BBPelecard\API\Pelecard;
 use CRM\BBPelecard\Utils\ErrorCodes;
 use CRM\BBPelecard\Payment\BBPriorityBaseProcessor;
@@ -237,11 +238,13 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
       $pelecard->setParameter("LogoUrl", "https://checkout.kabbalah.info/logo1.png");
     }
 
-    // Google Pay / Apple Pay are not sent: on 2026-11-15 Pelecard turned them
-    // off on the terminal, and /init then refuses the whole request (ErrCode
-    // 999 "GooglePay / ApplePay not enable call support"), which put payers on
-    // the thank-you page without a payment. Revert this commit to bring them
-    // back once Pelecard re-enables them.
+    // Google Pay and Apple Pay buttons on Pelecard's hosted page; same as the
+    // CC processor (see BBPriorityCC.php for the details, including the
+    // retry without wallets when the terminal has them off).
+    if ($nick_name == 'ben2') {
+      $pelecard->setParameter('GooglePay', ['Enable'  => 'True', 'MerchantName' => 'Bnei Baruch Kabbalah laAm']);
+      $pelecard->setParameter('ApplePay',  ['Enabled' => 'True', 'Label'        => 'Bnei Baruch Kabbalah laAm']);
+    }
 
     $pelecard->setParameter("MinPayments", 1);
     $installments = 1;
@@ -262,7 +265,12 @@ class CRM_Core_Payment_BBPriorityDonation extends BBPriorityBaseProcessor {
 
     $url = $this->applyUrlsAndLaunch($pelecard, $merchantUrl, $goodUrl, $cancelURL, (int)$contributionID, (float)$amount);
     if ($url === null) {
-      return FALSE;
+      // Returning false here let the form carry on to the thank-you page with
+      // the contribution left Pending and no payment page shown. Throwing is
+      // what core expects: it marks the contribution Failed and shows the
+      // message on the form. The Pelecard error itself is logged by
+      // applyUrlsAndLaunch().
+      throw new PaymentProcessorException(ts('The payment page could not be opened. No payment was taken. Please try again later.'), 9003);
     }
 
     // Print the tpl to redirect to Pelecard
